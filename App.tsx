@@ -81,12 +81,36 @@ const App: React.FC = () => {
         if (stores && !storeError) setGlobalStores(stores);
         else setGlobalStores(MOCK_STORES);
 
-        // 2. Load Merchandisers
-        // Note: In a real app, this would be from 'users' table or auth
-        setGlobalMerchandisers(MOCK_MERCHANDISERS);
+        // 2. Load Users (Merchandisers & Managers)
+        const { data: users, error: userError } = await supabase.from('users').select('*');
+        if (users && !userError) {
+          const merchs = users.filter((u: any) => u.role === 'MERCHANDISER').map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            password: u.password,
+            phone: u.phone,
+            zone: u.zone,
+            active: u.active,
+            avatarUrl: u.avatar_url
+          }));
+          setGlobalMerchandisers(merchs);
 
-        // 3. Load Managers
-        setGlobalManagers(MOCK_MANAGERS);
+          const managers = users.filter((u: any) => u.role === 'SUPERVISOR' || u.role === 'MANAGER' || u.role === 'ADMIN').map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            password: u.password,
+            role: u.role === 'ADMIN' ? 'ADMIN' : 'SUPERVISOR',
+            region: u.zone, // Mapping zone to region for managers
+            active: u.active
+          }));
+          setGlobalManagers(managers);
+        } else {
+          // Fallback to mocks if error or empty (optional, maybe remove for prod)
+          setGlobalMerchandisers(MOCK_MERCHANDISERS);
+          setGlobalManagers(MOCK_MANAGERS);
+        }
 
         // 4. Load Products
         const { data: products, error: prodError } = await supabase.from('products').select('*');
