@@ -101,7 +101,7 @@ const App: React.FC = () => {
             name: u.name,
             email: u.email,
             password: u.password,
-            role: u.role === 'ADMIN' ? 'ADMIN' : 'SUPERVISOR',
+            role: (u.role === 'ADMIN' ? 'ADMIN' : 'SUPERVISOR') as 'SUPERVISOR' | 'ADMIN',
             region: u.zone, // Mapping zone to region for managers
             active: u.active
           }));
