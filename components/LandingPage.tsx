@@ -486,6 +486,49 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
         </div>
       </section>
 
+      {/* --- DOWNLOAD SECTION --- */}
+      <section id="download" className="py-20 bg-brand-600 text-white relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+          <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">Téléchargez l'application mobile</h2>
+          <p className="text-xl text-brand-100 mb-12 max-w-2xl mx-auto">
+            Disponible pour Android et iOS. Installez l'application pour vos merchandisers et commencez à remonter des données terrain dès aujourd'hui.
+          </p>
+
+          <div className="flex flex-col md:flex-row justify-center gap-6">
+            {/* Android APK */}
+            <a
+              href="/app-release.apk"
+              download
+              className="flex items-center gap-4 bg-white text-brand-900 px-8 py-4 rounded-2xl hover:bg-gray-50 transition shadow-lg group"
+            >
+              <Smartphone size={32} className="text-green-600" />
+              <div className="text-left">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Android</div>
+                <div className="text-lg font-bold">Télécharger l'APK</div>
+              </div>
+            </a>
+
+            {/* iOS PWA */}
+            <div className="flex items-center gap-4 bg-black/20 backdrop-blur-sm border border-white/20 text-white px-8 py-4 rounded-2xl">
+              <Smartphone size={32} className="text-white" />
+              <div className="text-left">
+                <div className="text-xs font-semibold text-white/70 uppercase tracking-wider">iOS (iPhone)</div>
+                <div className="text-lg font-bold">Ajouter à l'écran d'accueil</div>
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-8 text-sm text-brand-200">
+            * Pour iOS : Ouvrez ce site dans Safari, touchez le bouton "Partager" <span className="inline-block px-2 py-1 bg-white/20 rounded mx-1">⎋</span> puis "Sur l'écran d'accueil".
+          </p>
+        </div>
+      </section>
+
       {/* --- FOOTER --- */}
       <footer className="bg-white dark:bg-gray-950 pt-16 pb-8 border-t border-gray-100 dark:border-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -20,6 +20,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
         password: ''
     });
     const [createdAccounts, setCreatedAccounts] = useState<{ manager: any, merch: any } | null>(null);
+    const [emailSent, setEmailSent] = useState(false);
 
     if (!isOpen) return null;
 
@@ -31,7 +32,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
         e.preventDefault();
         setLoading(true);
 
-        // 1. Insert Lead
+        // 1. Insert Lead (Keep this for CRM purposes)
         const { error: leadError } = await supabase.from('leads').insert([
             {
                 name: `${formData.firstName} ${formData.lastName}`,
@@ -44,86 +45,78 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
 
         if (leadError) console.error('Error submitting lead:', leadError);
 
-        // 2. Create Manager Account
-        const managerId = `mgr-${Date.now()}`;
-        const managerUser = {
-            id: managerId,
-            name: `${formData.firstName} ${formData.lastName}`,
+        // 2. Sign Up with Supabase Auth (Manager Account)
+        const { data: authData, error: authError } = await supabase.auth.signUp({
             email: formData.email,
             password: formData.password,
-            phone: formData.phone,
-            zone: 'Global',
-            role: 'SUPERVISOR',
-            active: true
-        };
+            options: {
+                data: {
+                    name: `${formData.firstName} ${formData.lastName}`,
+                    role: 'SUPERVISOR', // Default role for trial
+                    zone: 'Global',
+                    phone: formData.phone
+                }
+            }
+        });
 
-        // 3. Create Merchandiser Account (Mobile)
-        const merchId = `m-${Date.now()}`;
-        const merchUser = {
-            id: merchId,
-            name: `Merch ${formData.firstName}`,
-            email: `mobile.${formData.email}`, // Fake email for mobile login
-            password: formData.password,
-            phone: formData.phone,
-            zone: 'Terrain',
-            role: 'MERCHANDISER',
-            active: true
-        };
-
-        // Insert Users
-        const { error: userError } = await supabase.from('users').insert([managerUser, merchUser]);
-
-        if (userError) {
-            console.error('Error creating users:', userError);
+        if (authError) {
+            console.error('Error signing up:', authError);
+            alert(`Erreur lors de l'inscription: ${authError.message}`);
             setLoading(false);
             return;
         }
 
-        // Initialize Trial
-        localStorage.setItem('tradeX_trial_start', new Date().toISOString());
-        localStorage.setItem('tradeX_is_demo_user', 'true');
+        // 3. Create Merchandiser Account (Mobile)
+        const merchEmail = `mobile.${formData.email}`;
+        const { error: merchAuthError } = await supabase.auth.signUp({
+            email: merchEmail,
+            password: formData.password,
+            options: {
+                data: {
+                    name: `Merch ${formData.firstName}`,
+                    role: 'MERCHANDISER',
+                    zone: 'Terrain',
+                    phone: formData.phone
+                }
+            }
+        });
+
+        if (merchAuthError) {
+            console.error('Error creating merch account:', merchAuthError);
+        }
 
         setLoading(false);
-        setCreatedAccounts({ manager: managerUser, merch: merchUser });
-        // onSubmitSuccess(); // We wait for user to see credentials
+        setEmailSent(true);
     };
 
-    if (createdAccounts) {
+    if (emailSent) {
         return (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose}></div>
                 <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up border border-gray-100 dark:border-gray-800 p-8 text-center">
-                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle size={32} className="text-green-600 dark:text-green-400" />
+                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Mail size={32} className="text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 dark:text-white">Compte créé avec succès !</h2>
-                    <p className="text-gray-600 dark:text-gray-300 mb-6">Vous pouvez maintenant tester TradeX sur tous vos appareils.</p>
+                    <h2 className="text-2xl font-bold mb-2 dark:text-white">Vérifiez votre email</h2>
+                    <p className="text-gray-600 dark:text-gray-300 mb-6">
+                        Un lien de confirmation a été envoyé à <span className="font-bold">{formData.email}</span>.
+                        <br />Veuillez cliquer dessus pour activer votre période d'essai de 7 jours.
+                    </p>
 
-                    <div className="space-y-4 text-left">
-                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Monitor size={20} className="text-blue-600 dark:text-blue-400" />
-                                <h3 className="font-bold text-blue-900 dark:text-blue-300">Accès Manager (PC)</h3>
-                            </div>
-                            <p className="text-sm text-gray-700 dark:text-gray-300">Email : <span className="font-mono font-bold">{createdAccounts.manager.email}</span></p>
-                            <p className="text-sm text-gray-700 dark:text-gray-300">Mot de passe : <span className="font-mono font-bold">{createdAccounts.manager.password}</span></p>
-                        </div>
-
-                        <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Smartphone size={20} className="text-purple-600 dark:text-purple-400" />
-                                <h3 className="font-bold text-purple-900 dark:text-purple-300">Accès Merchandiser (Mobile)</h3>
-                            </div>
-                            <p className="text-sm text-gray-700 dark:text-gray-300">Email : <span className="font-mono font-bold">{createdAccounts.merch.email}</span></p>
-                            <p className="text-sm text-gray-700 dark:text-gray-300">Mot de passe : <span className="font-mono font-bold">{createdAccounts.merch.password}</span></p>
-                        </div>
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-100 dark:border-yellow-800 text-left mb-6">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                            <strong>Note :</strong> Un compte "Merchandiser" a également été pré-créé pour vos tests mobile :
+                            <br />Email : <code>mobile.{formData.email}</code>
+                            <br />Mot de passe : (celui que vous avez choisi)
+                            <br /><em>Vous devrez aussi confirmer cet email (si possible) ou utiliser le compte Manager pour tout gérer.</em>
+                        </p>
                     </div>
 
                     <button
-                        onClick={onSubmitSuccess}
-                        className="w-full bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-xl font-bold shadow-lg mt-6 transition"
+                        onClick={onClose}
+                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 py-3 rounded-xl font-bold shadow-sm transition"
                     >
-                        Commencer la démo
+                        Fermer
                     </button>
                 </div>
             </div>
