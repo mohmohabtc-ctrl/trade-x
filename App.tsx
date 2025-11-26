@@ -284,8 +284,10 @@ const App: React.FC = () => {
 
 // --- LOGIN SCREEN COMPONENT ---
 const LoginScreen = ({ onLogin, loading, isDarkMode, toggleDarkMode, onBackToHome }: any) => {
+  // --- LOGIN STATE ---
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
