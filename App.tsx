@@ -168,13 +168,11 @@ const App: React.FC = () => {
         return;
       }
 
-      setLoginError("Email ou mot de passe incorrect.");
-      return;
+      return "Email ou mot de passe incorrect.";
     }
 
     // If successful, the onAuthStateChange listener above will handle the state update
-    // But we can clear error here
-    setLoginError('');
+    return null;
   };
 
   const handleLogout = async () => {
@@ -304,9 +302,14 @@ const LoginScreen = ({ onLogin, loading, isDarkMode, toggleDarkMode, onBackToHom
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(email, password);
+    const error = await onLogin(email, password);
+    if (error) {
+      setLoginError(error);
+    } else {
+      setLoginError('');
+    }
   };
 
   return (
