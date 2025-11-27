@@ -135,6 +135,45 @@ const App: React.FC = () => {
     };
 
     fetchData();
+
+    // Listen for Auth Changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Fetch user profile from public.users
+        const { data: userProfile, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (userProfile && !error) {
+          const role = userProfile.role === 'ADMIN' ? UserRole.ADMIN :
+            (userProfile.role === 'SUPERVISOR' || userProfile.role === 'MANAGER') ? UserRole.MANAGER :
+              UserRole.MERCHANDISER;
+
+          setRole(role);
+          setCurrentUser({
+            ...userProfile,
+            // Map DB fields to App types if needed
+            region: userProfile.zone,
+          });
+          setIsLoggedIn(true);
+          setShowLandingPage(false);
+        } else {
+          console.error("Error fetching user profile:", error);
+          // Handle case where auth exists but profile doesn't (maybe trigger failed?)
+          // Fallback or show error?
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        setShowLandingPage(true);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   // --- ACTIONS ---
