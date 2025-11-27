@@ -66,23 +66,16 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
             return;
         }
 
-        // 3. Create Merchandiser Account (Mobile)
-        const merchEmail = `mobile.${formData.email}`;
-        const { error: merchAuthError } = await supabase.auth.signUp({
-            email: merchEmail,
-            password: formData.password,
-            options: {
-                data: {
-                    name: `Merch ${formData.firstName}`,
-                    role: 'MERCHANDISER',
-                    zone: 'Terrain',
-                    phone: formData.phone
-                }
-            }
+        // 3. Create Merchandiser Account (Mobile) via RPC (No Auth, direct DB insert for Demo)
+        const { error: merchError } = await supabase.rpc('create_demo_merchandiser', {
+            manager_email: formData.email,
+            merch_password: formData.password,
+            manager_name: formData.firstName,
+            manager_phone: formData.phone
         });
 
-        if (merchAuthError) {
-            console.error('Error creating merch account:', merchAuthError);
+        if (merchError) {
+            console.error('Error creating merch account:', merchError);
         }
 
         setLoading(false);

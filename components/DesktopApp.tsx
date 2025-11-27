@@ -997,6 +997,10 @@ const TeamView = ({
     const handleAddUser = (e: React.FormEvent) => {
         e.preventDefault();
         if (viewType === 'MERCH') {
+            if (merchandisers.length >= 3) {
+                alert("Limite atteinte : Vous ne pouvez créer que 3 merchandisers dans la version d'essai.");
+                return;
+            }
             onAddMerchandiser({
                 id: `m-${Date.now()}`,
                 name: newUser.name,

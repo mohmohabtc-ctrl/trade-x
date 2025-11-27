@@ -2,7 +2,7 @@
 create extension if not exists "uuid-ossp";
 
 -- ==========================================
--- 1. TABLES
+-- 1. TABLES & MIGRATIONS
 -- ==========================================
 
 create table if not exists public.users (
@@ -14,18 +14,34 @@ create table if not exists public.users (
   zone text,
   role text check (role in ('MERCHANDISER', 'MANAGER', 'ADMIN', 'SUPERVISOR')),
   active boolean default true,
-  avatar_url text,
-  manager_id text references public.users(id) -- Link to the Manager who created this user
+  avatar_url text
 );
+
+-- Add manager_id if it doesn't exist (Migration)
+do $$ 
+begin 
+  if not exists (select 1 from information_schema.columns where table_name = 'users' and column_name = 'manager_id') then
+    alter table public.users add column manager_id text references public.users(id);
+  end if;
+end $$;
+
 
 create table if not exists public.stores (
   id text primary key,
   name text not null,
   address text,
   lat double precision,
-  lng double precision,
-  owner_id text references public.users(id) -- The Manager who owns this store
+  lng double precision
 );
+
+-- Add owner_id to stores
+do $$ 
+begin 
+  if not exists (select 1 from information_schema.columns where table_name = 'stores' and column_name = 'owner_id') then
+    alter table public.stores add column owner_id text references public.users(id);
+  end if;
+end $$;
+
 
 create table if not exists public.products (
   id text primary key,
@@ -34,9 +50,17 @@ create table if not exists public.products (
   name text,
   price numeric,
   stock integer,
-  facing integer,
-  owner_id text references public.users(id) -- The Manager who owns this product
+  facing integer
 );
+
+-- Add owner_id to products
+do $$ 
+begin 
+  if not exists (select 1 from information_schema.columns where table_name = 'products' and column_name = 'owner_id') then
+    alter table public.products add column owner_id text references public.users(id);
+  end if;
+end $$;
+
 
 create table if not exists public.visits (
   id text primary key,
@@ -52,9 +76,17 @@ create table if not exists public.visits (
   rupture text,
   photo_avant text,
   photo_apres text,
-  rupture_items jsonb,
-  owner_id text references public.users(id) -- The Manager who created this visit
+  rupture_items jsonb
 );
+
+-- Add owner_id to visits
+do $$ 
+begin 
+  if not exists (select 1 from information_schema.columns where table_name = 'visits' and column_name = 'owner_id') then
+    alter table public.visits add column owner_id text references public.users(id);
+  end if;
+end $$;
+
 
 create table if not exists public.tasks (
   id text primary key,
@@ -219,8 +251,57 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- ==========================================
--- 5. SEED DATA (Only for initial setup, usually empty for new tenants)
+-- 5. RPC FUNCTIONS (DEMO & HELPERS)
 -- ==========================================
--- We DO NOT insert seed data here anymore to ensure empty state for new users.
--- The existing seed data in the DB will remain for legacy users, 
--- but new users won't see it due to RLS (owner_id will be null or different).
+
+-- Function to create a demo merchandiser linked to a manager's email
+-- This allows creating a user in public.users WITHOUT Supabase Auth, 
+-- enabling the "fallback" login mechanism in App.tsx to work for the demo.
+
+create or replace function public.create_demo_merchandiser(
+  manager_email text,
+  merch_password text,
+  manager_name text,
+  manager_phone text
+)
+returns json
+language plpgsql
+security definer -- Runs with admin privileges to bypass RLS
+as $$
+declare
+  new_id text;
+  merch_email text;
+  mgr_id text;
+begin
+  -- Find the manager's ID
+  select id into mgr_id from public.users where email = manager_email;
+  
+  if mgr_id is null then
+    raise exception 'Manager not found';
+  end if;
+
+  -- Generate a pseudo-random ID or use UUID
+  new_id := uuid_generate_v4()::text;
+  
+  -- Create a fake email for the merchandiser
+  merch_email := 'mobile.' || manager_email;
+
+  insert into public.users (id, email, name, password, role, active, zone, phone, manager_id)
+  values (
+    new_id,
+    merch_email,
+    'Merch ' || manager_name,
+    merch_password, -- Storing plain text password for DEMO ONLY
+    'MERCHANDISER',
+    true,
+    'Terrain',
+    manager_phone,
+    mgr_id -- Link to Manager
+  );
+
+  return json_build_object(
+    'id', new_id,
+    'email', merch_email
+  );
+end;
+$$;

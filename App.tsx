@@ -228,30 +228,102 @@ const App: React.FC = () => {
     // In Real App: Supabase update here
   };
 
-  const addVisit = (newVisit: Visit) => {
-    setGlobalVisits(prev => [...prev, newVisit]);
+  const addVisit = async (newVisit: Visit) => {
+    // Save to Supabase
+    const { error } = await supabase.from('visits').insert([{
+      id: newVisit.id,
+      merchandiser_id: newVisit.merchandiserId,
+      store_id: newVisit.storeId,
+      scheduled_start: newVisit.scheduledStart,
+      scheduled_end: newVisit.scheduledEnd,
+      status: newVisit.status,
+      owner_id: currentUser?.id
+    }]);
+
+    if (!error) {
+      setGlobalVisits(prev => [...prev, newVisit]);
+    } else {
+      console.error("Error adding visit:", error);
+      alert("Erreur lors de la création de la visite.");
+    }
   };
 
-  const addMerchandiser = (m: MerchandiserProfile) => {
-    setGlobalMerchandisers(prev => [...prev, m]);
+  const addMerchandiser = async (m: MerchandiserProfile) => {
+    // Use RPC for demo merchandiser creation to handle password and linking
+    // Or if we want to use the standard flow, we'd use auth.signUp but here we want the "demo" flow
+    // where the manager creates it.
+
+    // We'll use the RPC we created which handles everything including setting manager_id
+    const { error } = await supabase.rpc('create_demo_merchandiser', {
+      manager_email: currentUser?.email,
+      merch_password: m.password,
+      manager_name: currentUser?.name,
+      manager_phone: m.phone
+    });
+
+    if (!error) {
+      // We need to fetch the created user or just add it to state
+      // The RPC creates it in DB, so we can add to state
+      const newMerch = { ...m, manager_id: currentUser?.id };
+      setGlobalMerchandisers(prev => [...prev, newMerch]);
+    } else {
+      console.error("Error adding merchandiser:", error);
+      alert("Erreur lors de la création du merchandiser.");
+    }
   };
 
   const addManager = (m: ManagerProfile) => {
     setGlobalManagers(prev => [...prev, m]);
   };
 
-  const addStore = (s: Store) => {
-    setGlobalStores(prev => [...prev, s]);
-  };
+  const addStore = async (s: Store) => {
+    const { error } = await supabase.from('stores').insert([{
+      id: s.id,
+      name: s.name,
+      address: s.address,
+      lat: s.lat,
+      lng: s.lng,
+      owner_id: currentUser?.id
+    }]);
 
-  const deleteStore = (id: string) => {
-    if (window.confirm('Voulez-vous vraiment supprimer ce magasin ?')) {
-      setGlobalStores(prev => prev.filter(s => s.id !== id));
+    if (!error) {
+      setGlobalStores(prev => [...prev, s]);
+    } else {
+      console.error("Error adding store:", error);
+      alert("Erreur lors de la création du magasin.");
     }
   };
 
-  const addProduct = (p: Product) => {
-    setGlobalProducts(prev => [...prev, p]);
+  const deleteStore = async (id: string) => {
+    if (window.confirm('Voulez-vous vraiment supprimer ce magasin ?')) {
+      const { error } = await supabase.from('stores').delete().eq('id', id);
+      if (!error) {
+        setGlobalStores(prev => prev.filter(s => s.id !== id));
+      } else {
+        console.error("Error deleting store:", error);
+        alert("Erreur lors de la suppression.");
+      }
+    }
+  };
+
+  const addProduct = async (p: Product) => {
+    const { error } = await supabase.from('products').insert([{
+      id: p.id,
+      brand: p.brand,
+      sku: p.sku,
+      name: p.name,
+      price: p.price,
+      stock: p.stock,
+      facing: p.facing,
+      owner_id: currentUser?.id
+    }]);
+
+    if (!error) {
+      setGlobalProducts(prev => [...prev, p]);
+    } else {
+      console.error("Error adding product:", error);
+      alert("Erreur lors de la création du produit.");
+    }
   }
 
   // --- RENDER LOGIC ---
