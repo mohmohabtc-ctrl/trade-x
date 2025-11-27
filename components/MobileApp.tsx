@@ -403,13 +403,13 @@ const RouteList = ({ visits, onSelectVisit, onUpdateVisit, products }: { visits:
                 const filePath = `${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
-                    .from('mission-photos')
+                    .from('photos')
                     .upload(filePath, file);
 
                 if (uploadError) throw uploadError;
 
                 const { data } = supabase.storage
-                    .from('mission-photos')
+                    .from('photos')
                     .getPublicUrl(filePath);
 
                 const publicUrl = data.publicUrl;

@@ -122,6 +122,7 @@ alter table public.leads enable row level security;
 
 -- --- USERS POLICIES ---
 drop policy if exists "Users can view own profile and subordinates" on public.users;
+drop policy if exists "Allow public read users" on public.users; -- DROP LEGACY
 create policy "Users can view own profile and subordinates" on public.users 
 for select using ( 
   auth.uid()::text = id 
@@ -130,6 +131,7 @@ for select using (
 
 -- --- STORES POLICIES ---
 drop policy if exists "Manager can view own stores" on public.stores;
+drop policy if exists "Enable read access for all users" on public.stores; -- DROP LEGACY
 create policy "Manager can view own stores" on public.stores
 for select using (
   owner_id = auth.uid()::text
@@ -139,18 +141,21 @@ for select using (
 );
 
 drop policy if exists "Manager can insert own stores" on public.stores;
+drop policy if exists "Enable insert for authenticated users only" on public.stores; -- DROP LEGACY
 create policy "Manager can insert own stores" on public.stores
 for insert with check (
   auth.uid()::text = owner_id
 );
 
 drop policy if exists "Manager can update own stores" on public.stores;
+drop policy if exists "Enable update for authenticated users only" on public.stores; -- DROP LEGACY
 create policy "Manager can update own stores" on public.stores
 for update using (
   owner_id = auth.uid()::text
 );
 
 drop policy if exists "Manager can delete own stores" on public.stores;
+drop policy if exists "Enable delete for authenticated users only" on public.stores; -- DROP LEGACY
 create policy "Manager can delete own stores" on public.stores
 for delete using (
   owner_id = auth.uid()::text
@@ -158,6 +163,7 @@ for delete using (
 
 -- --- PRODUCTS POLICIES ---
 drop policy if exists "Manager can view own products" on public.products;
+drop policy if exists "Enable read access for all users" on public.products; -- DROP LEGACY
 create policy "Manager can view own products" on public.products
 for select using (
   owner_id = auth.uid()::text
@@ -167,6 +173,7 @@ for select using (
 );
 
 drop policy if exists "Manager can insert own products" on public.products;
+drop policy if exists "Enable insert for authenticated users only" on public.products; -- DROP LEGACY
 create policy "Manager can insert own products" on public.products
 for insert with check (
   auth.uid()::text = owner_id
@@ -174,6 +181,7 @@ for insert with check (
 
 -- --- VISITS POLICIES ---
 drop policy if exists "Manager and Merch can view visits" on public.visits;
+drop policy if exists "Enable all access for authenticated users" on public.visits; -- DROP LEGACY
 create policy "Manager and Merch can view visits" on public.visits
 for select using (
   owner_id = auth.uid()::text -- Manager
@@ -197,6 +205,7 @@ for update using (
 
 -- --- TASKS POLICIES ---
 drop policy if exists "Access tasks via visit" on public.tasks;
+drop policy if exists "Enable all access for authenticated users" on public.tasks; -- DROP LEGACY
 create policy "Access tasks via visit" on public.tasks
 for all using (
   exists (
