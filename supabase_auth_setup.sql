@@ -2,14 +2,15 @@
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.users (id, email, name, role, active, zone)
+  insert into public.users (id, email, name, role, active, zone, phone)
   values (
     new.id,
     new.email,
     new.raw_user_meta_data->>'name',
     coalesce(new.raw_user_meta_data->>'role', 'SUPERVISOR'), -- Default to SUPERVISOR if not specified
     true,
-    coalesce(new.raw_user_meta_data->>'zone', 'Global')
+    coalesce(new.raw_user_meta_data->>'zone', 'Global'),
+    new.raw_user_meta_data->>'phone'
   );
   return new;
 end;
