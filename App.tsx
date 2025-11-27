@@ -375,13 +375,7 @@ const LoginScreen = ({ onLogin, loading, isDarkMode, toggleDarkMode, onBackToHom
           </button>
         </form>
 
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Comptes de démo :</p>
-          <div className="flex justify-center gap-2 text-xs">
-            <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded border border-blue-100 dark:border-blue-800 cursor-pointer hover:bg-blue-100" onClick={() => { setEmail('ali@merchfield.com'); setPassword('123') }}>Agent: ali@merchfield.com / 123</span>
-            <span className="px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded border border-purple-100 dark:border-purple-800 cursor-pointer hover:bg-purple-100" onClick={() => { setEmail('sophie@raya.dz'); setPassword('123') }}>Manager: sophie@raya.dz / 123</span>
-          </div>
-        </div>
+
       </div>
     </div>
   );
