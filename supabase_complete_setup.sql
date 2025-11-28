@@ -8,7 +8,7 @@ create extension if not exists "uuid-ossp";
 create table if not exists public.users (
   id text primary key,
   name text,
-  email text unique,
+  email text,
   password text,
   phone text,
   zone text,
@@ -244,6 +244,12 @@ create policy "Authenticated Upload" on storage.objects for insert with check ( 
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
+  -- Aggressively delete any existing user profile with this email but different ID
+  begin
+    delete from public.users where email = new.email and id <> new.id;
+  exception when others then null;
+  end;
+
   insert into public.users (id, email, name, role, active, zone, phone, created_at)
   values (
     new.id,
@@ -253,9 +259,18 @@ begin
     true,
     coalesce(new.raw_user_meta_data->>'zone', 'Global'),
     new.raw_user_meta_data->>'phone',
-    new.created_at
-  );
+    coalesce(new.created_at, now())
+  )
+  on conflict (id) do update set
+    email = excluded.email,
+    name = excluded.name,
+    role = excluded.role,
+    phone = excluded.phone,
+    created_at = excluded.created_at;
+    
   return new;
+exception when others then
+  raise exception 'Trigger Failed: %', SQLERRM;
 end;
 $$ language plpgsql security definer;
 
