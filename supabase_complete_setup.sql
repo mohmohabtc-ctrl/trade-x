@@ -144,6 +144,15 @@ alter table public.visits enable row level security;
 alter table public.tasks enable row level security;
 alter table public.leads enable row level security;
 
+-- ==========================================
+-- 2.5 PERMISSIONS (Crucial for access)
+-- ==========================================
+grant usage on schema public to anon, authenticated, service_role;
+grant all on public.users to service_role;
+grant select on public.users to anon, authenticated;
+grant insert, update on public.users to authenticated;
+grant insert, update on public.users to service_role;
+
 -- --- USERS POLICIES ---
 drop policy if exists "Users can view own profile and subordinates" on public.users;
 drop policy if exists "Allow public read users" on public.users; -- DROP LEGACY

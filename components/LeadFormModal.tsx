@@ -32,54 +32,72 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
         e.preventDefault();
         setLoading(true);
 
-        // 1. Insert Lead (Keep this for CRM purposes)
-        const { error: leadError } = await supabase.from('leads').insert([
-            {
-                name: `${formData.firstName} ${formData.lastName}`,
-                email: formData.email,
-                phone: formData.phone,
-                company: formData.company,
-                role: 'Prospect',
+        // Safety timeout: stop loading after 15 seconds if stuck
+        const timeoutId = setTimeout(() => {
+            if (loading) {
+                setLoading(false);
+                alert("La demande prend trop de temps. Veuillez vérifier votre connexion ou réessayer.");
             }
-        ]);
+        }, 15000);
 
-        if (leadError) console.error('Error submitting lead:', leadError);
-
-        // 2. Sign Up with Supabase Auth (Manager Account)
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: formData.email,
-            password: formData.password,
-            options: {
-                data: {
+        try {
+            // 1. Insert Lead
+            const { error: leadError } = await supabase.from('leads').insert([
+                {
                     name: `${formData.firstName} ${formData.lastName}`,
-                    role: 'SUPERVISOR', // Default role for trial
-                    zone: 'Global',
-                    phone: formData.phone
+                    email: formData.email,
+                    phone: formData.phone,
+                    company: formData.company,
+                    role: 'Prospect',
                 }
+            ]);
+            if (leadError) console.error('Error submitting lead:', leadError);
+
+            // 2. Sign Up
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: formData.email,
+                password: formData.password,
+                options: {
+                    data: {
+                        name: `${formData.firstName} ${formData.lastName}`,
+                        role: 'SUPERVISOR',
+                        zone: 'Global',
+                        phone: formData.phone
+                    }
+                }
+            });
+
+            if (authError) {
+                clearTimeout(timeoutId);
+                console.error('Error signing up:', authError);
+                alert(`Erreur lors de l'inscription: ${authError.message}`);
+                setLoading(false);
+                return;
             }
-        });
 
-        if (authError) {
-            console.error('Error signing up:', authError);
-            alert(`Erreur lors de l'inscription: ${authError.message}`);
+            // 3. Create Demo Merchandiser (Best effort)
+            try {
+                const { error: merchError } = await supabase.rpc('create_demo_merchandiser', {
+                    manager_email: formData.email,
+                    merch_password: formData.password,
+                    manager_name: formData.firstName,
+                    manager_phone: formData.phone
+                });
+                if (merchError) console.error('Error creating merch account:', merchError);
+            } catch (rpcError) {
+                console.error("RPC Error (non-blocking):", rpcError);
+            }
+
+            clearTimeout(timeoutId);
             setLoading(false);
-            return;
+            setEmailSent(true);
+
+        } catch (err: any) {
+            clearTimeout(timeoutId);
+            console.error("Unexpected error:", err);
+            alert("Une erreur inattendue est survenue. Veuillez réessayer.");
+            setLoading(false);
         }
-
-        // 3. Create Merchandiser Account (Mobile) via RPC (No Auth, direct DB insert for Demo)
-        const { error: merchError } = await supabase.rpc('create_demo_merchandiser', {
-            manager_email: formData.email,
-            merch_password: formData.password,
-            manager_name: formData.firstName,
-            manager_phone: formData.phone
-        });
-
-        if (merchError) {
-            console.error('Error creating merch account:', merchError);
-        }
-
-        setLoading(false);
-        setEmailSent(true);
     };
 
     if (emailSent) {
