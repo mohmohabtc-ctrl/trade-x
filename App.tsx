@@ -34,33 +34,28 @@ const App: React.FC = () => {
     }
   }, [darkMode]);
 
-  // Check Trial Status on Mount
+  // Check Trial Status based on currentUser.created_at
   useEffect(() => {
-    const trialStart = localStorage.getItem('tradeX_trial_start');
-    if (trialStart) {
-      const startDate = new Date(trialStart);
+    if (currentUser && currentUser.created_at) {
+      const trialStart = new Date(currentUser.created_at);
       const now = new Date();
-      const diffTime = Math.abs(now.getTime() - startDate.getTime());
+      const diffTime = Math.abs(now.getTime() - trialStart.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
       if (diffDays > 7) {
         setTrialExpired(true);
+        setDaysRemaining(0);
       } else {
-        setDaysRemaining(8 - diffDays); // 7 days trial, so 8 - current day index (1-based roughly)
+        setTrialExpired(false);
+        setDaysRemaining(8 - diffDays);
       }
-
-      // Auto-login if demo user
-      const isDemoUser = localStorage.getItem('tradeX_is_demo_user');
-      if (isDemoUser === 'true' && !isLoggedIn && diffDays <= 7) {
-        // Auto login as Manager for demo
-        const demoMgr = MOCK_MANAGERS[0];
-        setCurrentUser(demoMgr);
-        setRole(UserRole.MANAGER);
-        setIsLoggedIn(true);
-        setShowLandingPage(false);
-      }
+    } else if (currentUser) {
+      // Fallback if no created_at (e.g. legacy user), assume trial valid or infinite?
+      // For now, let's give them 7 days from "now" effectively or just hide it.
+      // Or better, don't show trial banner if no date.
+      setDaysRemaining(null);
     }
-  }, [isLoggedIn]);
+  }, [currentUser]);
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
@@ -71,7 +66,7 @@ const App: React.FC = () => {
   const [globalManagers, setGlobalManagers] = useState<ManagerProfile[]>([]);
   const [globalProducts, setGlobalProducts] = useState<Product[]>([]);
 
-  // --- INITIAL DATA FETCHING ---
+  // --- INITIAL DATA FETCHING & REALTIME ---
   useEffect(() => {
     const fetchData = async () => {
       // En arrière-plan, on charge les données
@@ -84,27 +79,34 @@ const App: React.FC = () => {
         // 2. Load Users (Merchandisers & Managers)
         const { data: users, error: userError } = await supabase.from('users').select('*');
         if (users && !userError) {
-          const merchs = users.filter((u: any) => u.role === 'MERCHANDISER').map((u: any) => ({
-            id: u.id,
-            name: u.name,
-            email: u.email,
-            password: u.password,
-            phone: u.phone,
-            zone: u.zone,
-            active: u.active,
-            avatarUrl: u.avatar_url
-          }));
+          const merchs: MerchandiserProfile[] = users
+            .filter((u: any) => u.role === 'MERCHANDISER')
+            .map((u: any) => ({
+              id: u.id,
+              name: u.name,
+              email: u.email,
+              password: u.password,
+              phone: u.phone,
+              zone: u.zone,
+              active: u.active,
+              avatarUrl: u.avatar_url,
+              manager_id: u.manager_id,
+              created_at: u.created_at
+            }));
           setGlobalMerchandisers(merchs);
 
-          const managers = users.filter((u: any) => u.role === 'SUPERVISOR' || u.role === 'MANAGER' || u.role === 'ADMIN').map((u: any) => ({
-            id: u.id,
-            name: u.name,
-            email: u.email,
-            password: u.password,
-            role: (u.role === 'ADMIN' ? 'ADMIN' : 'SUPERVISOR') as 'SUPERVISOR' | 'ADMIN',
-            region: u.zone, // Mapping zone to region for managers
-            active: u.active
-          }));
+          const managers: ManagerProfile[] = users
+            .filter((u: any) => u.role === 'SUPERVISOR' || u.role === 'MANAGER' || u.role === 'ADMIN')
+            .map((u: any) => ({
+              id: u.id,
+              name: u.name,
+              email: u.email,
+              password: u.password,
+              role: (u.role === 'ADMIN' ? 'ADMIN' : 'SUPERVISOR') as 'SUPERVISOR' | 'ADMIN',
+              region: u.zone, // Mapping zone to region for managers
+              active: u.active,
+              created_at: u.created_at
+            }));
           setGlobalManagers(managers);
         } else {
           // Fallback to mocks if error or empty (optional, maybe remove for prod)
@@ -117,10 +119,15 @@ const App: React.FC = () => {
         if (products && !prodError) setGlobalProducts(products);
         else setGlobalProducts(MOCK_PRODUCTS);
 
-        // 5. Load Visits (Complex join usually, keeping it simple for now or using Mocks if DB empty)
-        // For now, we use MOCK_VISITS extended with dynamic logic if needed
-        // In production, this would be a Supabase query
-        setGlobalVisits(MOCK_VISITS);
+        // 5. Load Visits
+        const { data: visits, error: visitError } = await supabase.from('visits').select('*');
+        if (visits && !visitError) {
+          // We might need to map some fields if DB structure differs slightly from Visit type
+          // But assuming direct mapping for now or minimal adjustment
+          setGlobalVisits(visits as Visit[]);
+        } else {
+          setGlobalVisits(MOCK_VISITS);
+        }
 
       } catch (error) {
         console.error("Error loading data:", error);
@@ -135,6 +142,15 @@ const App: React.FC = () => {
     };
 
     fetchData();
+
+    // Realtime Subscription for Visits
+    const subscription = supabase
+      .channel('public:visits')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits' }, (payload) => {
+        console.log('Realtime update:', payload);
+        fetchData(); // Re-fetch data on any change
+      })
+      .subscribe();
 
     // Listen for Auth Changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -156,6 +172,7 @@ const App: React.FC = () => {
             ...userProfile,
             // Map DB fields to App types if needed
             region: userProfile.zone,
+            created_at: userProfile.created_at
           });
           setIsLoggedIn(true);
           setShowLandingPage(false);
@@ -172,6 +189,7 @@ const App: React.FC = () => {
     });
 
     return () => {
+      supabase.removeChannel(subscription);
       authListener.subscription.unsubscribe();
     };
   }, []);

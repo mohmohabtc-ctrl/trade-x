@@ -18,6 +18,7 @@ export interface Store {
   address: string;
   lat: number;
   lng: number;
+  owner_id?: string; // The Manager who owns this store
 }
 
 export interface Product {
@@ -28,6 +29,7 @@ export interface Product {
   price: number;
   stock: number; // Stock cible ou théorique
   facing: number; // Objectif de facing
+  owner_id?: string; // The Manager who owns this product
 }
 
 export interface Task {
@@ -50,6 +52,7 @@ export interface Visit {
   tasks: Task[];
   checkInTime?: string;
   checkOutTime?: string;
+  owner_id?: string; // The Manager who created this visit
 
   // Champs pour le rapport rapide en mode tableau
   dlc?: string;
@@ -103,6 +106,8 @@ export interface MerchandiserProfile {
   zone: string;
   active: boolean;
   avatarUrl?: string;
+  manager_id?: string; // Link to the Manager who created this user
+  created_at?: string;
 }
 
 // New Interface for Supervisors (Managers like Sophie)
@@ -114,6 +119,7 @@ export interface ManagerProfile {
   role: 'SUPERVISOR' | 'ADMIN';
   region: string;
   active: boolean;
+  created_at?: string;
 }
 
 export interface PhotoItem {

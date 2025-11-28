@@ -173,7 +173,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
 
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-8 leading-[1.1] animate-fade-in-up delay-100">
             L'excellence opérationnelle <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 via-red-500 to-purple-600">sur le terrain</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 via-red-500 to-purple-600">en Temps Réel</span>
           </h1>
 
           <p className="max-w-3xl mx-auto text-xl md:text-2xl text-gray-500 dark:text-gray-400 mb-10 leading-relaxed animate-fade-in-up delay-200">
@@ -274,7 +274,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Pour les Agences</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
-                  Gérez plusieurs clients simultanément avec des espaces cloisonnés. Offrez à vos clients une transparence totale avec des accès "Guest" et des rapports en marque blanche.
+                  Gérez plusieurs clients simultanément avec une <strong>isolation stricte</strong> des données. Offrez à vos clients une transparence totale avec des accès "Guest" et des rapports en marque blanche.
                 </p>
                 <ul className="space-y-3 mb-8">
                   <CheckItem text="Multi-Clients & Multi-Projets" />
@@ -346,8 +346,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
             />
             <FeatureItem
               icon={<Layout />}
-              title="Formulaires Flexibles"
-              desc="Créez vos propres questionnaires : Prix, Facings, Ruptures, PLV."
+              title="Rapports Structurés"
+              desc="Questionnaires optimisés pour la rapidité : Prix, Facings, Ruptures, PLV."
               color="purple"
             />
             <FeatureItem
@@ -363,15 +363,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
               color="indigo"
             />
             <FeatureItem
-              icon={<Mail />}
-              title="Alertes Ruptures"
-              desc="Notification immédiate par email/SMS en cas de rupture critique."
+              icon={<Zap />}
+              title="Analyse Ruptures"
+              desc="Détection automatique des ruptures et suggestions d'actions correctives."
               color="pink"
             />
             <FeatureItem
-              icon={<CreditCard />}
-              title="Note de Frais"
-              desc="Module intégré pour déclarer les déplacements et frais de vie."
+              icon={<Users />}
+              title="Gestion d'Équipe"
+              desc="Vue centralisée de vos merchandisers, plannings et performances."
               color="teal"
             />
           </div>

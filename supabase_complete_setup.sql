@@ -14,7 +14,8 @@ create table if not exists public.users (
   zone text,
   role text check (role in ('MERCHANDISER', 'MANAGER', 'ADMIN', 'SUPERVISOR')),
   active boolean default true,
-  avatar_url text
+  avatar_url text,
+  created_at timestamptz default now()
 );
 
 -- Add manager_id if it doesn't exist (Migration)
@@ -22,6 +23,9 @@ do $$
 begin 
   if not exists (select 1 from information_schema.columns where table_name = 'users' and column_name = 'manager_id') then
     alter table public.users add column manager_id text references public.users(id);
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'users' and column_name = 'created_at') then
+    alter table public.users add column created_at timestamptz default now();
   end if;
 end $$;
 
@@ -240,7 +244,7 @@ create policy "Authenticated Upload" on storage.objects for insert with check ( 
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.users (id, email, name, role, active, zone, phone)
+  insert into public.users (id, email, name, role, active, zone, phone, created_at)
   values (
     new.id,
     new.email,
@@ -248,7 +252,8 @@ begin
     coalesce(new.raw_user_meta_data->>'role', 'SUPERVISOR'),
     true,
     coalesce(new.raw_user_meta_data->>'zone', 'Global'),
-    new.raw_user_meta_data->>'phone'
+    new.raw_user_meta_data->>'phone',
+    new.created_at
   );
   return new;
 end;

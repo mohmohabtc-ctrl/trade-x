@@ -11,7 +11,7 @@ import { MOCK_KPIS, MOCK_PHOTOS } from '../mockData';
 interface DesktopAppProps {
     onLogout: () => void;
     userRole: UserRole;
-    currentUser: any;
+    currentUser: MerchandiserProfile | ManagerProfile | null;
     merchandisers: MerchandiserProfile[];
     onAddMerchandiser: (m: MerchandiserProfile) => void;
     managers: ManagerProfile[];
@@ -144,9 +144,9 @@ const DesktopApp: React.FC<DesktopAppProps> = ({
                     {activeTab === 'ADMIN' && <AdminView merchandisers={merchandisers} visits={visits} stores={stores} />}
                     {activeTab === 'GALLERY' && <PhotoGalleryView visits={visits} merchandisers={merchandisers} stores={stores} />}
                     {activeTab === 'TEAM' && <TeamView isAdmin={isAdmin} merchandisers={merchandisers} onAddMerchandiser={onAddMerchandiser} managers={managers} onAddManager={onAddManager} />}
-                    {activeTab === 'STORES' && <StoresView stores={stores} onAddStore={onAddStore} onDeleteStore={onDeleteStore} />}
+                    {activeTab === 'STORES' && <StoresView stores={stores} onAddStore={onAddStore} onDeleteStore={onDeleteStore} currentUser={currentUser} />}
                     {activeTab === 'DISPATCH' && <DispatchingView merchandisers={merchandisers} stores={stores} visits={visits} onAddVisit={onAddVisit} />}
-                    {activeTab === 'PRODUCTS' && <ProductsView products={products} onAddProduct={onAddProduct} />}
+                    {activeTab === 'PRODUCTS' && <ProductsView products={products} onAddProduct={onAddProduct} currentUser={currentUser} />}
                 </main>
             </div>
         </div>
@@ -166,7 +166,7 @@ const SidebarItem = ({ icon, label, active, onClick }: { icon: any, label: strin
 
 /* --- VIEWS --- */
 
-const ProductsView = ({ products, onAddProduct }: { products: Product[], onAddProduct: (p: Product) => void }) => {
+const ProductsView = ({ products, onAddProduct, currentUser }: { products: Product[], onAddProduct: (p: Product) => void, currentUser: MerchandiserProfile | ManagerProfile | null }) => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [newProduct, setNewProduct] = useState({
         brand: '',
@@ -221,7 +221,8 @@ const ProductsView = ({ products, onAddProduct }: { products: Product[], onAddPr
             name: newProduct.name,
             price: parseFloat(newProduct.price),
             stock: parseInt(newProduct.stock),
-            facing: parseInt(newProduct.facing)
+            facing: parseInt(newProduct.facing),
+            owner_id: currentUser?.id
         };
         onAddProduct(product);
         setShowAddModal(false);
@@ -1100,7 +1101,7 @@ const TeamView = ({
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(viewType === 'MERCH' ? merchandisers : managers).map((user: any) => (
+                {(viewType === 'MERCH' ? merchandisers : managers).map((user: MerchandiserProfile | ManagerProfile) => (
                     <div key={user.id} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-start gap-4 hover:shadow-md transition relative overflow-hidden">
                         <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 ${viewType === 'SUPERVISOR' ? 'bg-purple-500' : 'bg-brand-500'}`}>
                             {user.name.charAt(0)}
@@ -1115,7 +1116,7 @@ const TeamView = ({
                                     <Briefcase size={14} className="flex-shrink-0" /> {viewType === 'SUPERVISOR' ? 'Superviseur' : 'Merchandiser'}
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 truncate">
-                                    <MapPin size={14} className="flex-shrink-0" /> {user.zone || user.region}
+                                    <MapPin size={14} className="flex-shrink-0" /> {(user as MerchandiserProfile).zone || (user as ManagerProfile).region}
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 truncate">
                                     <Mail size={14} className="flex-shrink-0" /> {user.email}
@@ -1131,7 +1132,7 @@ const TeamView = ({
     )
 }
 
-const StoresView = ({ stores, onAddStore, onDeleteStore }: { stores: Store[], onAddStore: (s: Store) => void, onDeleteStore: (id: string) => void }) => {
+const StoresView = ({ stores, onAddStore, onDeleteStore, currentUser }: { stores: Store[], onAddStore: (s: Store) => void, onDeleteStore: (id: string) => void, currentUser: MerchandiserProfile | ManagerProfile | null }) => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [newStore, setNewStore] = useState({ name: '', address: '', lat: '', lng: '' });
 
@@ -1142,7 +1143,8 @@ const StoresView = ({ stores, onAddStore, onDeleteStore }: { stores: Store[], on
             name: newStore.name,
             address: newStore.address,
             lat: parseFloat(newStore.lat),
-            lng: parseFloat(newStore.lng)
+            lng: parseFloat(newStore.lng),
+            owner_id: currentUser?.id
         };
         onAddStore(store); // Call parent function
         setShowAddModal(false);
