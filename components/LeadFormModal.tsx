@@ -33,15 +33,18 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
         setLoading(true);
 
         // Safety timeout: stop loading after 15 seconds if stuck
+        let timedOut = false;
         const timeoutId = setTimeout(() => {
-            if (loading) {
-                setLoading(false);
-                alert("La demande prend trop de temps. Veuillez vérifier votre connexion ou réessayer.");
-            }
+            timedOut = true;
+            setLoading(false);
+            alert("La demande prend trop de temps. Veuillez vérifier votre connexion ou réessayer.");
         }, 15000);
 
         try {
+            console.log('🚀 Starting form submission...');
+
             // 1. Insert Lead
+            console.log('📝 Step 1: Inserting lead...');
             const { error: leadError } = await supabase.from('leads').insert([
                 {
                     name: `${formData.firstName} ${formData.lastName}`,
@@ -51,9 +54,21 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
                     role: 'Prospect',
                 }
             ]);
-            if (leadError) console.error('Error submitting lead:', leadError);
+
+            if (leadError) {
+                console.error('❌ Error submitting lead:', leadError);
+                // Don't block on lead error, but log it
+            } else {
+                console.log('✅ Lead inserted successfully');
+            }
+
+            if (timedOut) {
+                console.log('⏱️ Timed out after lead insert');
+                return;
+            }
 
             // 2. Sign Up
+            console.log('🔐 Step 2: Creating auth account...');
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
@@ -69,13 +84,21 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
 
             if (authError) {
                 clearTimeout(timeoutId);
-                console.error('Error signing up:', authError);
+                console.error('❌ Error signing up:', authError);
                 alert(`Erreur lors de l'inscription: ${authError.message}`);
                 setLoading(false);
                 return;
             }
 
+            console.log('✅ Auth account created:', authData?.user?.id);
+
+            if (timedOut) {
+                console.log('⏱️ Timed out after auth signup');
+                return;
+            }
+
             // 3. Create Demo Merchandiser (Best effort)
+            console.log('👤 Step 3: Creating demo merchandiser...');
             try {
                 const { error: merchError } = await supabase.rpc('create_demo_merchandiser', {
                     manager_email: formData.email,
@@ -83,19 +106,33 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
                     manager_name: formData.firstName,
                     manager_phone: formData.phone
                 });
-                if (merchError) console.error('Error creating merch account:', merchError);
+                if (merchError) {
+                    console.error('⚠️ Error creating merch account (non-blocking):', merchError);
+                } else {
+                    console.log('✅ Demo merchandiser created');
+                }
             } catch (rpcError) {
-                console.error("RPC Error (non-blocking):", rpcError);
+                console.error("⚠️ RPC Error (non-blocking):", rpcError);
             }
 
             clearTimeout(timeoutId);
+            console.log('🎉 Form submission complete!');
             setLoading(false);
             setEmailSent(true);
 
         } catch (err: any) {
             clearTimeout(timeoutId);
-            console.error("Unexpected error:", err);
-            alert("Une erreur inattendue est survenue. Veuillez réessayer.");
+            console.error("💥 Unexpected error in handleSubmit:", err);
+
+            let errorMessage = "Une erreur inattendue est survenue. Veuillez réessayer.";
+            if (err?.message) {
+                errorMessage += ` (${err.message})`;
+            }
+            if (err?.code) {
+                errorMessage += ` [Code: ${err.code}]`;
+            }
+
+            alert(errorMessage);
             setLoading(false);
         }
     };
