@@ -2,7 +2,27 @@
 create extension if not exists "uuid-ossp";
 
 -- ==========================================
--- 1. TABLES & MIGRATIONS
+-- 1. CLEANUP & PREP (Fixes for existing broken states)
+-- ==========================================
+
+-- Drop potential blocking constraints on users.email
+do $$
+declare
+  r record;
+begin
+  for r in (
+    select constraint_name
+    from information_schema.table_constraints
+    where table_name = 'users' 
+    and constraint_type = 'UNIQUE'
+    and table_schema = 'public'
+  ) loop
+    execute 'alter table public.users drop constraint ' || quote_ident(r.constraint_name);
+  end loop;
+end $$;
+
+-- ==========================================
+-- 2. TABLES & MIGRATIONS
 -- ==========================================
 
 create table if not exists public.users (
@@ -242,7 +262,11 @@ create policy "Authenticated Upload" on storage.objects for insert with check ( 
 -- ==========================================
 
 create or replace function public.handle_new_user()
-returns trigger as $$
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 begin
   -- Aggressively delete any existing user profile with this email but different ID
   begin
@@ -272,7 +296,7 @@ begin
 exception when others then
   raise exception 'Trigger Failed: %', SQLERRM;
 end;
-$$ language plpgsql security definer;
+$$;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -296,6 +320,7 @@ create or replace function public.create_demo_merchandiser(
 returns json
 language plpgsql
 security definer -- Runs with admin privileges to bypass RLS
+set search_path = public
 as $$
 declare
   new_id text;
@@ -334,3 +359,33 @@ begin
   );
 end;
 $$;
+
+-- ==========================================
+-- 6. DATA REPAIR (Fix for missing profiles)
+-- ==========================================
+
+do $$
+declare
+  missing_user record;
+begin
+  for missing_user in (
+    select au.id, au.email, au.raw_user_meta_data
+    from auth.users au
+    left join public.users pu on au.id::text = pu.id
+    where pu.id is null
+  ) loop
+    
+    insert into public.users (id, email, name, role, active, zone, phone, created_at)
+    values (
+      missing_user.id,
+      missing_user.email,
+      coalesce(missing_user.raw_user_meta_data->>'name', 'Utilisateur'),
+      coalesce(missing_user.raw_user_meta_data->>'role', 'SUPERVISOR'),
+      true,
+      coalesce(missing_user.raw_user_meta_data->>'zone', 'Global'),
+      missing_user.raw_user_meta_data->>'phone',
+      now()
+    );
+    
+  end loop;
+end $$;
