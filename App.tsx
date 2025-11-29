@@ -207,7 +207,41 @@ const App: React.FC = () => {
       return;
     }
 
-    // 2. Try Supabase Auth Login (Standard Flow)
+    // 2. FAST PATH: Check if this is a demo account (mobile.*) - Skip Auth entirely
+    if (email.toLowerCase().startsWith('mobile.')) {
+      console.log("🚀 Demo account detected, using direct RPC login...");
+      const { data: demoUser, error: demoError } = await supabase.rpc('login_demo_user', {
+        email_input: email,
+        password_input: pass
+      });
+
+      console.log("🔍 RPC Response:", { demoUser, demoError });
+
+      if (demoUser && !demoError) {
+        console.log("✅ Demo user logged in:", demoUser);
+        const role = demoUser.role === 'ADMIN' ? UserRole.ADMIN :
+          (demoUser.role === 'SUPERVISOR' || demoUser.role === 'MANAGER') ? UserRole.MANAGER :
+            UserRole.MERCHANDISER;
+
+        setRole(role);
+        setCurrentUser({
+          id: demoUser.id,
+          name: demoUser.name,
+          email: demoUser.email,
+          role: role,
+          region: demoUser.zone,
+          active: true,
+        } as any);
+        setIsLoggedIn(true);
+        setShowLandingPage(false);
+        return;
+      } else {
+        console.error("❌ Demo login failed:", demoError);
+        return "Email ou mot de passe incorrect.";
+      }
+    }
+
+    // 3. Try Supabase Auth Login (Standard Flow) - Only for non-demo accounts
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email,
       password: pass,
@@ -216,7 +250,7 @@ const App: React.FC = () => {
     if (error) {
       console.log("Auth login failed, trying demo login...", error.message);
 
-      // 3. Fallback: Try "Demo User" Login via RPC
+      // 4. Fallback: Try "Demo User" Login via RPC
       // This allows users created via create_demo_merchandiser (who are in public.users but not auth.users) to log in.
       console.log("🔍 Calling login_demo_user RPC with:", { email, password: '***' });
       const { data: demoUser, error: demoError } = await supabase.rpc('login_demo_user', {
@@ -249,7 +283,7 @@ const App: React.FC = () => {
         console.error("❌ Demo login failed:", demoError);
       }
 
-      // 4. Fallback: Check if it's a legacy manual user (from our previous implementation without Auth)
+      // 5. Fallback: Check if it's a legacy manual user (from our previous implementation without Auth)
       const mgr = globalManagers.find(m => m.email.toLowerCase() === email.toLowerCase() && m.password === pass);
       if (mgr) {
         setCurrentUser(mgr);
