@@ -10,40 +10,48 @@ async function testConnection() {
 
     // 1. Test Leads Insert
     console.log("\n--- Testing 'leads' table insert ---");
-    const { data: leadData, error: leadError } = await supabase.from('leads').insert([
-        {
-            name: 'Test User',
-            email: 'test@example.com',
-            phone: '1234567890',
-            company: 'Test Corp',
-            role: 'Prospect'
-        }
-    ]).select();
+    try {
+        const { data: leadData, error: leadError } = await supabase.from('leads').insert([
+            {
+                name: 'Test User Debug',
+                email: `test.debug.${Date.now()}@example.com`,
+                phone: '1234567890',
+                company: 'Test Corp',
+                role: 'Prospect'
+            }
+        ]);
 
-    if (leadError) {
-        console.error("❌ Error inserting lead:", leadError);
-    } else {
-        console.log("✅ Lead inserted successfully:", leadData);
+        if (leadError) {
+            console.error("❌ Error inserting lead:", JSON.stringify(leadError, null, 2));
+        } else {
+            console.log("✅ Lead inserted successfully:", leadData);
+        }
+    } catch (e) {
+        console.error("Exception during lead insert:", e);
     }
 
-    // 2. Test Users Insert
-    console.log("\n--- Testing 'users' table insert ---");
-    const testUserId = `test-${Date.now()}`;
-    const { data: userData, error: userError } = await supabase.from('users').insert([
-        {
-            id: testUserId,
-            name: 'Test Manager',
-            email: `test.mgr.${Date.now()}@example.com`,
-            password: 'password123',
-            role: 'SUPERVISOR',
-            active: true
-        }
-    ]).select();
+    // 2. Test Users Insert (Expected to fail for Anon)
+    console.log("\n--- Testing 'users' table insert (Expect Failure) ---");
+    try {
+        const testUserId = `test-${Date.now()}`;
+        const { data: userData, error: userError } = await supabase.from('users').insert([
+            {
+                id: testUserId,
+                name: 'Test Manager',
+                email: `test.mgr.${Date.now()}@example.com`,
+                password: 'password123',
+                role: 'SUPERVISOR',
+                active: true
+            }
+        ]).select();
 
-    if (userError) {
-        console.error("❌ Error inserting user:", userError);
-    } else {
-        console.log("✅ User inserted successfully:", userData);
+        if (userError) {
+            console.log("ℹ️ User insert failed (Expected for Anon):", userError.code, userError.message);
+        } else {
+            console.log("✅ User inserted successfully (Unexpected for Anon):", userData);
+        }
+    } catch (e) {
+        console.error("Exception during user insert:", e);
     }
 }
 

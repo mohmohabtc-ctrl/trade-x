@@ -1,44 +1,51 @@
--- Enable UUID extension
+-- ==========================================
+-- TradeX SaaS - Complete Database Setup (Unified)
+-- Includes: Tables, Migrations, RLS, Triggers, RPCs, Indexes, Permissions
+-- ==========================================
+
+-- 1. EXTENSIONS
 create extension if not exists "uuid-ossp";
+create extension if not exists "pgcrypto"; -- For gen_random_uuid() if needed on older PG versions
 
--- ==========================================
--- 1. CLEANUP & PREP (Fixes for existing broken states)
--- ==========================================
+-- 2. CLEANUP (Safe Drops)
+-- Drop triggers first to avoid dependencies
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user();
+drop function if exists public.create_demo_merchandiser(text, text, text, text);
 
--- Drop potential blocking constraints on users.email
+-- Drop potential conflicting triggers on leads (from previous debugging)
 do $$
 declare
-  r record;
+  trg_name text;
 begin
-  for r in (
-    select constraint_name
-    from information_schema.table_constraints
-    where table_name = 'users' 
-    and constraint_type = 'UNIQUE'
-    and table_schema = 'public'
-  ) loop
-    execute 'alter table public.users drop constraint ' || quote_ident(r.constraint_name);
+  for trg_name in 
+    select trigger_name 
+    from information_schema.triggers 
+    where event_object_table = 'leads' 
+    and event_object_schema = 'public'
+  loop
+    execute 'drop trigger if exists ' || quote_ident(trg_name) || ' on public.leads cascade';
   end loop;
 end $$;
 
--- ==========================================
--- 2. TABLES & MIGRATIONS
--- ==========================================
+-- 3. TABLES & MIGRATIONS
 
+-- USERS
 create table if not exists public.users (
   id text primary key,
   name text,
   email text,
-  password text,
+  password text, -- Only for demo/legacy users
   phone text,
   zone text,
   role text check (role in ('MERCHANDISER', 'MANAGER', 'ADMIN', 'SUPERVISOR')),
   active boolean default true,
   avatar_url text,
+  manager_id text references public.users(id),
   created_at timestamptz default now()
 );
 
--- Add manager_id if it doesn't exist (Migration)
+-- Users Migration (Ensure columns exist)
 do $$ 
 begin 
   if not exists (select 1 from information_schema.columns where table_name = 'users' and column_name = 'manager_id') then
@@ -47,18 +54,26 @@ begin
   if not exists (select 1 from information_schema.columns where table_name = 'users' and column_name = 'created_at') then
     alter table public.users add column created_at timestamptz default now();
   end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'users' and column_name = 'phone') then
+    alter table public.users add column phone text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name = 'users' and column_name = 'zone') then
+    alter table public.users add column zone text;
+  end if;
 end $$;
 
-
+-- STORES
 create table if not exists public.stores (
   id text primary key,
   name text not null,
   address text,
   lat double precision,
-  lng double precision
+  lng double precision,
+  owner_id text references public.users(id),
+  created_at timestamptz default now()
 );
 
--- Add owner_id to stores
+-- Stores Migration
 do $$ 
 begin 
   if not exists (select 1 from information_schema.columns where table_name = 'stores' and column_name = 'owner_id') then
@@ -66,7 +81,7 @@ begin
   end if;
 end $$;
 
-
+-- PRODUCTS
 create table if not exists public.products (
   id text primary key,
   brand text,
@@ -74,10 +89,12 @@ create table if not exists public.products (
   name text,
   price numeric,
   stock integer,
-  facing integer
+  facing integer,
+  owner_id text references public.users(id),
+  created_at timestamptz default now()
 );
 
--- Add owner_id to products
+-- Products Migration
 do $$ 
 begin 
   if not exists (select 1 from information_schema.columns where table_name = 'products' and column_name = 'owner_id') then
@@ -85,7 +102,7 @@ begin
   end if;
 end $$;
 
-
+-- VISITS
 create table if not exists public.visits (
   id text primary key,
   merchandiser_id text references public.users(id),
@@ -100,10 +117,12 @@ create table if not exists public.visits (
   rupture text,
   photo_avant text,
   photo_apres text,
-  rupture_items jsonb
+  rupture_items jsonb,
+  owner_id text references public.users(id),
+  created_at timestamptz default now()
 );
 
--- Add owner_id to visits
+-- Visits Migration
 do $$ 
 begin 
   if not exists (select 1 from information_schema.columns where table_name = 'visits' and column_name = 'owner_id') then
@@ -111,7 +130,7 @@ begin
   end if;
 end $$;
 
-
+-- TASKS
 create table if not exists public.tasks (
   id text primary key,
   visit_id text references public.visits(id) on delete cascade,
@@ -119,126 +138,120 @@ create table if not exists public.tasks (
   title text,
   completed boolean default false,
   required boolean default false,
-  data jsonb
+  data jsonb,
+  created_at timestamptz default now()
 );
 
+-- LEADS
 create table if not exists public.leads (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null,
   email text not null,
   phone text,
   company text,
   role text,
+  plan_interest text, -- 'Starter', 'Business', 'Enterprise'
   created_at timestamptz default now()
 );
 
--- ==========================================
--- 2. ROW LEVEL SECURITY (RLS) & POLICIES
--- ==========================================
+-- Leads Migration
+do $$ 
+begin 
+  if not exists (select 1 from information_schema.columns where table_name = 'leads' and column_name = 'plan_interest') then
+    alter table public.leads add column plan_interest text;
+  end if;
+end $$;
 
--- Enable RLS on all tables
+-- 4. INDEXES (Performance Optimization)
+create index if not exists idx_users_email on public.users(email);
+create index if not exists idx_users_manager_id on public.users(manager_id);
+create index if not exists idx_visits_owner_id on public.visits(owner_id);
+create index if not exists idx_visits_merchandiser_id on public.visits(merchandiser_id);
+create index if not exists idx_stores_owner_id on public.stores(owner_id);
+create index if not exists idx_leads_email on public.leads(email);
+
+-- 5. PERMISSIONS (Crucial for access)
+grant usage on schema public to anon, authenticated, service_role;
+grant all on public.users to service_role;
+grant select on public.users to anon, authenticated;
+grant insert, update on public.users to authenticated, service_role;
+-- Allow public insert on leads is handled by RLS, but explicit grant is good practice if RLS is off (but we enable it)
+
+-- 6. ROW LEVEL SECURITY (RLS)
+
+-- Enable RLS
+alter table public.users enable row level security;
 alter table public.stores enable row level security;
 alter table public.products enable row level security;
-alter table public.users enable row level security;
 alter table public.visits enable row level security;
 alter table public.tasks enable row level security;
 alter table public.leads enable row level security;
 
--- ==========================================
--- 2.5 PERMISSIONS (Crucial for access)
--- ==========================================
-grant usage on schema public to anon, authenticated, service_role;
-grant all on public.users to service_role;
-grant select on public.users to anon, authenticated;
-grant insert, update on public.users to authenticated;
-grant insert, update on public.users to service_role;
-
--- --- USERS POLICIES ---
+-- USERS POLICIES
 drop policy if exists "Users can view own profile and subordinates" on public.users;
-drop policy if exists "Allow public read users" on public.users; -- DROP LEGACY
 create policy "Users can view own profile and subordinates" on public.users 
 for select using ( 
   auth.uid()::text = id 
   OR manager_id = auth.uid()::text 
 );
 
--- --- STORES POLICIES ---
+-- STORES POLICIES
 drop policy if exists "Manager can view own stores" on public.stores;
-drop policy if exists "Enable read access for all users" on public.stores; -- DROP LEGACY
 create policy "Manager can view own stores" on public.stores
 for select using (
   owner_id = auth.uid()::text
   OR 
-  -- Merchandisers can see stores owned by their manager
   owner_id = (select manager_id from public.users where id = auth.uid()::text)
 );
 
 drop policy if exists "Manager can insert own stores" on public.stores;
-drop policy if exists "Enable insert for authenticated users only" on public.stores; -- DROP LEGACY
 create policy "Manager can insert own stores" on public.stores
-for insert with check (
-  auth.uid()::text = owner_id
-);
+for insert with check ( auth.uid()::text = owner_id );
 
 drop policy if exists "Manager can update own stores" on public.stores;
-drop policy if exists "Enable update for authenticated users only" on public.stores; -- DROP LEGACY
 create policy "Manager can update own stores" on public.stores
-for update using (
-  owner_id = auth.uid()::text
-);
+for update using ( auth.uid()::text = owner_id );
 
 drop policy if exists "Manager can delete own stores" on public.stores;
-drop policy if exists "Enable delete for authenticated users only" on public.stores; -- DROP LEGACY
 create policy "Manager can delete own stores" on public.stores
-for delete using (
-  owner_id = auth.uid()::text
-);
+for delete using ( auth.uid()::text = owner_id );
 
--- --- PRODUCTS POLICIES ---
+-- PRODUCTS POLICIES
 drop policy if exists "Manager can view own products" on public.products;
-drop policy if exists "Enable read access for all users" on public.products; -- DROP LEGACY
 create policy "Manager can view own products" on public.products
 for select using (
   owner_id = auth.uid()::text
   OR 
-  -- Merchandisers can see products owned by their manager
   owner_id = (select manager_id from public.users where id = auth.uid()::text)
 );
 
 drop policy if exists "Manager can insert own products" on public.products;
-drop policy if exists "Enable insert for authenticated users only" on public.products; -- DROP LEGACY
 create policy "Manager can insert own products" on public.products
-for insert with check (
-  auth.uid()::text = owner_id
-);
+for insert with check ( auth.uid()::text = owner_id );
 
--- --- VISITS POLICIES ---
+-- VISITS POLICIES
 drop policy if exists "Manager and Merch can view visits" on public.visits;
-drop policy if exists "Enable all access for authenticated users" on public.visits; -- DROP LEGACY
 create policy "Manager and Merch can view visits" on public.visits
 for select using (
-  owner_id = auth.uid()::text -- Manager
+  owner_id = auth.uid()::text
   OR 
-  merchandiser_id = auth.uid()::text -- Merchandiser
+  merchandiser_id = auth.uid()::text
 );
 
 drop policy if exists "Manager can insert visits" on public.visits;
 create policy "Manager can insert visits" on public.visits
-for insert with check (
-  auth.uid()::text = owner_id
-);
+for insert with check ( auth.uid()::text = owner_id );
 
 drop policy if exists "Merch can update assigned visits" on public.visits;
 create policy "Merch can update assigned visits" on public.visits
 for update using (
-  owner_id = auth.uid()::text -- Manager
+  owner_id = auth.uid()::text
   OR 
-  merchandiser_id = auth.uid()::text -- Merchandiser
+  merchandiser_id = auth.uid()::text
 );
 
--- --- TASKS POLICIES ---
+-- TASKS POLICIES
 drop policy if exists "Access tasks via visit" on public.tasks;
-drop policy if exists "Enable all access for authenticated users" on public.tasks; -- DROP LEGACY
 create policy "Access tasks via visit" on public.tasks
 for all using (
   exists (
@@ -248,17 +261,12 @@ for all using (
   )
 );
 
--- --- LEADS POLICIES ---
+-- LEADS POLICIES
 drop policy if exists "Allow public insert leads" on public.leads;
 create policy "Allow public insert leads" on public.leads for insert with check (true);
 
--- ==========================================
--- 3. STORAGE
--- ==========================================
-
-insert into storage.buckets (id, name, public)
-values ('photos', 'photos', true)
-on conflict (id) do nothing;
+-- STORAGE POLICIES
+insert into storage.buckets (id, name, public) values ('photos', 'photos', true) on conflict (id) do nothing;
 
 drop policy if exists "Public Access" on storage.objects;
 create policy "Public Access" on storage.objects for select using ( bucket_id = 'photos' );
@@ -266,10 +274,9 @@ create policy "Public Access" on storage.objects for select using ( bucket_id = 
 drop policy if exists "Authenticated Upload" on storage.objects;
 create policy "Authenticated Upload" on storage.objects for insert with check ( bucket_id = 'photos' and auth.role() = 'authenticated' );
 
--- ==========================================
--- 4. TRIGGERS (AUTH INTEGRATION)
--- ==========================================
+-- 7. TRIGGERS & FUNCTIONS
 
+-- Optimized Handle New User
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -307,19 +314,11 @@ exception when others then
 end;
 $$;
 
-drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- ==========================================
--- 5. RPC FUNCTIONS (DEMO & HELPERS)
--- ==========================================
-
--- Function to create a demo merchandiser linked to a manager's email
--- This allows creating a user in public.users WITHOUT Supabase Auth, 
--- enabling the "fallback" login mechanism in App.tsx to work for the demo.
-
+-- Create Demo Merchandiser RPC
 create or replace function public.create_demo_merchandiser(
   manager_email text,
   merch_password text,
@@ -328,7 +327,7 @@ create or replace function public.create_demo_merchandiser(
 )
 returns json
 language plpgsql
-security definer -- Runs with admin privileges to bypass RLS
+security definer
 set search_path = public
 as $$
 declare
@@ -336,17 +335,14 @@ declare
   merch_email text;
   mgr_id text;
 begin
-  -- Find the manager's ID
   select id into mgr_id from public.users where email = manager_email;
   
   if mgr_id is null then
     raise exception 'Manager not found';
   end if;
 
-  -- Generate a pseudo-random ID or use UUID
-  new_id := uuid_generate_v4()::text;
-  
-  -- Create a fake email for the merchandiser
+  -- Use gen_random_uuid() for built-in UUID generation (no extension needed)
+  new_id := gen_random_uuid()::text;
   merch_email := 'mobile.' || manager_email;
 
   insert into public.users (id, email, name, password, role, active, zone, phone, manager_id)
@@ -354,25 +350,23 @@ begin
     new_id,
     merch_email,
     'Merch ' || manager_name,
-    merch_password, -- Storing plain text password for DEMO ONLY
+    merch_password,
     'MERCHANDISER',
     true,
     'Terrain',
     manager_phone,
-    mgr_id -- Link to Manager
+    mgr_id
   );
 
-  return json_build_object(
-    'id', new_id,
-    'email', merch_email
-  );
+  return json_build_object('id', new_id, 'email', merch_email);
 end;
 $$;
 
--- ==========================================
--- 6. DATA REPAIR (Fix for missing profiles)
--- ==========================================
+-- Grant Execute
+grant execute on function public.create_demo_merchandiser to anon, authenticated, service_role;
 
+-- 8. DATA REPAIR (Fix missing profiles)
+-- Runs once to fix any users that exist in Auth but not in public.users
 do $$
 declare
   missing_user record;
@@ -386,7 +380,7 @@ begin
     
     insert into public.users (id, email, name, role, active, zone, phone, created_at)
     values (
-      missing_user.id,
+      missing_user.id::text,
       missing_user.email,
       coalesce(missing_user.raw_user_meta_data->>'name', 'Utilisateur'),
       coalesce(missing_user.raw_user_meta_data->>'role', 'SUPERVISOR'),
@@ -398,3 +392,6 @@ begin
     
   end loop;
 end $$;
+
+-- 9. FINAL VERIFICATION
+select count(*) as users_count from public.users;

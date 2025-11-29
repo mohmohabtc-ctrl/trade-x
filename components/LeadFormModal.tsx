@@ -6,9 +6,10 @@ interface LeadFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSubmitSuccess: () => void;
+    selectedPlan?: string; // New prop
 }
 
-const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmitSuccess }) => {
+const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmitSuccess, selectedPlan }) => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         firstName: '',
@@ -52,6 +53,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
                     phone: formData.phone,
                     company: formData.company,
                     role: 'Prospect',
+                    plan_interest: selectedPlan || 'General' // Save plan interest
                 }
             ]);
 
@@ -90,6 +92,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
                 return;
             }
 
+
             console.log('✅ Auth account created:', authData?.user?.id);
 
             if (timedOut) {
@@ -97,22 +100,52 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
                 return;
             }
 
-            // 3. Create Demo Merchandiser (Best effort)
-            console.log('👤 Step 3: Creating demo merchandiser...');
-            try {
-                const { error: merchError } = await supabase.rpc('create_demo_merchandiser', {
-                    manager_email: formData.email,
-                    merch_password: formData.password,
-                    manager_name: formData.firstName,
-                    manager_phone: formData.phone
-                });
-                if (merchError) {
-                    console.error('⚠️ Error creating merch account (non-blocking):', merchError);
-                } else {
-                    console.log('✅ Demo merchandiser created');
+            // 3. Wait for user profile to be created by trigger
+            console.log('⏳ Step 3: Waiting for user profile creation...');
+            let profileCreated = false;
+            let retries = 0;
+            const maxRetries = 10; // 10 retries * 500ms = 5 seconds max
+
+            while (!profileCreated && retries < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('email', formData.email)
+                    .single();
+
+                if (profile) {
+                    profileCreated = true;
+                    console.log('✅ User profile created in database');
                 }
-            } catch (rpcError) {
-                console.error("⚠️ RPC Error (non-blocking):", rpcError);
+                retries++;
+            }
+
+            if (!profileCreated) {
+                console.warn('⚠️ Profile creation timeout - merchandiser may not be created');
+            }
+
+            // 4. Create Demo Merchandiser (now that profile exists)
+            if (profileCreated) {
+                console.log('👤 Step 4: Creating demo merchandiser...');
+                try {
+                    const { error: merchError } = await supabase.rpc('create_demo_merchandiser', {
+                        manager_email: formData.email,
+                        merch_password: formData.password,
+                        manager_name: formData.firstName,
+                        manager_phone: formData.phone
+                    });
+
+                    if (merchError) {
+                        console.error('❌ Error creating merch account:', merchError);
+                        // Don't block the flow, user can create manually later
+                    } else {
+                        console.log('✅ Demo merchandiser created: mobile.' + formData.email);
+                    }
+                } catch (rpcError) {
+                    console.error("❌ RPC Error:", rpcError);
+                }
             }
 
             clearTimeout(timeoutId);
@@ -145,26 +178,38 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
                     <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Mail size={32} className="text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 dark:text-white">Vérifiez votre email</h2>
+                    <h2 className="text-2xl font-bold mb-2 dark:text-white">✅ Compte créé avec succès!</h2>
                     <p className="text-gray-600 dark:text-gray-300 mb-6">
-                        Un lien de confirmation a été envoyé à <span className="font-bold">{formData.email}</span>.
-                        <br />Veuillez cliquer dessus pour activer votre période d'essai de 7 jours.
+                        Votre compte manager a été créé.
+                        <br /><strong>Email:</strong> {formData.email}
                     </p>
 
-                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-100 dark:border-yellow-800 text-left mb-6">
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-100 dark:border-yellow-800 text-left mb-4">
                         <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                            <strong>Note :</strong> Un compte "Merchandiser" a également été pré-créé pour vos tests mobile :
-                            <br />Email : <code>mobile.{formData.email}</code>
-                            <br />Mot de passe : (celui que vous avez choisi)
-                            <br /><em>Vous devrez aussi confirmer cet email (si possible) ou utiliser le compte Manager pour tout gérer.</em>
+                            <strong>📧 Vérifiez votre boîte mail</strong>
+                            <br />Un email de confirmation a été envoyé à <strong>{formData.email}</strong>
+                            <br />Cliquez sur le lien pour activer toutes les fonctionnalités.
+                            <br /><em className="text-xs">Note: Vous pouvez vous connecter dès maintenant sans attendre la confirmation.</em>
+                        </p>
+                    </div>
+
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 text-left mb-6">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                            <strong>📱 Compte Merchandiser (pour tests mobile):</strong>
+                            <br />Email: <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">mobile.{formData.email}</code>
+                            <br />Mot de passe: (le même que votre compte manager)
+                            <br /><em className="text-xs mt-1 block">Utilisez ce compte pour tester l'application mobile.</em>
                         </p>
                     </div>
 
                     <button
-                        onClick={onClose}
-                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 py-3 rounded-xl font-bold shadow-sm transition"
+                        onClick={() => {
+                            onClose();
+                            window.location.reload(); // Refresh to trigger auto-login
+                        }}
+                        className="w-full bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-brand-500/30 transition transform active:scale-95"
                     >
-                        Fermer
+                        Accéder au Dashboard
                     </button>
                 </div>
             </div>

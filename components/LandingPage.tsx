@@ -43,6 +43,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>('General');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,7 +57,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
-  const handleOpenLeadForm = () => {
+  const handleOpenLeadForm = (plan: string = 'General') => {
+    setSelectedPlan(plan);
     setShowLeadForm(true);
   };
 
@@ -106,7 +108,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
                 Connexion
               </button>
               <button
-                onClick={handleOpenLeadForm}
+                onClick={() => handleOpenLeadForm('General')}
                 className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2.5 rounded-full font-bold text-sm transition shadow-lg hover:shadow-xl hover:-translate-y-0.5"
               >
                 Essai Gratuit
@@ -143,7 +145,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
                   Connexion
                 </button>
                 <button
-                  onClick={() => { handleOpenLeadForm(); setMobileMenuOpen(false); }}
+                  onClick={() => { handleOpenLeadForm('General'); setMobileMenuOpen(false); }}
                   className="w-full bg-brand-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-brand-500/30"
                 >
                   Démarrer l'essai gratuit
@@ -183,13 +185,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto animate-fade-in-up delay-300">
             <button
-              onClick={handleOpenLeadForm}
+              onClick={() => handleOpenLeadForm('Hero CTA')}
               className="px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-bold text-lg shadow-xl shadow-gray-900/20 dark:shadow-white/10 hover:shadow-2xl hover:-translate-y-1 transition duration-200 flex items-center justify-center gap-2 group"
             >
               Essai Gratuit 7 jours <ArrowRight size={20} className="group-hover:translate-x-1 transition" />
             </button>
             <button
-              onClick={handleOpenLeadForm}
+              onClick={() => handleOpenLeadForm('Demo Request')}
               className="px-8 py-4 bg-white dark:bg-gray-800/50 backdrop-blur-sm text-gray-700 dark:text-white border border-gray-200 dark:border-gray-700 rounded-full font-bold text-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-200 flex items-center justify-center gap-2"
             >
               <Play size={20} className="fill-current" /> Démo Live
@@ -281,7 +283,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
                   <CheckItem text="Rapports Marque Blanche" />
                   <CheckItem text="Accès Guest pour vos clients" />
                 </ul>
-                <button onClick={handleOpenLeadForm} className="text-blue-600 font-bold flex items-center gap-2 hover:gap-3 transition">Découvrir l'offre Agence <ArrowRight size={18} /></button>
+                <button onClick={() => handleOpenLeadForm('Agency Offer')} className="text-blue-600 font-bold flex items-center gap-2 hover:gap-3 transition">Découvrir l'offre Agence <ArrowRight size={18} /></button>
               </div>
             </div>
 
@@ -303,7 +305,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
                   <CheckItem text="Relevé de Prix & Veille" />
                   <CheckItem text="Analyse de Part de Linéaire" />
                 </ul>
-                <button onClick={handleOpenLeadForm} className="text-purple-600 font-bold flex items-center gap-2 hover:gap-3 transition">Découvrir l'offre Marque <ArrowRight size={18} /></button>
+                <button onClick={() => handleOpenLeadForm('Brand Offer')} className="text-purple-600 font-bold flex items-center gap-2 hover:gap-3 transition">Découvrir l'offre Marque <ArrowRight size={18} /></button>
               </div>
             </div>
           </div>
@@ -320,7 +322,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
                 Une suite d'outils complète conçue pour maximiser la productivité de vos équipes mobiles.
               </p>
             </div>
-            <button onClick={handleOpenLeadForm} className="px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full font-bold text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-sm">
+            <button onClick={() => handleOpenLeadForm('Features Section')} className="px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full font-bold text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-sm">
               Voir toutes les fonctionnalités
             </button>
           </div>
@@ -395,7 +397,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
                 <span className="text-4xl font-extrabold text-gray-900 dark:text-white">1.900 DA</span>
                 <span className="text-gray-500"> /JOURS /agent</span>
               </div>
-              <button onClick={handleOpenLeadForm} className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl font-bold mb-8 hover:bg-gray-200 transition">Commencer</button>
+              <button onClick={() => handleOpenLeadForm('Starter')} className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl font-bold mb-8 hover:bg-gray-200 transition">Commencer</button>
               <ul className="space-y-4 text-sm text-gray-600 dark:text-gray-300 flex-1">
                 <CheckItem text="Jusqu'à 5 utilisateurs" />
                 <CheckItem text="Application Mobile" />
@@ -413,7 +415,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
                 <span className="text-5xl font-extrabold text-white dark:text-gray-900">2.500 DA</span>
                 <span className="text-gray-400 dark:text-gray-500"> /JOURS /agent</span>
               </div>
-              <button onClick={handleOpenLeadForm} className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold mb-8 hover:bg-brand-700 transition shadow-lg shadow-brand-500/30">Essayer Gratuitement</button>
+              <button onClick={() => handleOpenLeadForm('Business')} className="w-full py-4 bg-brand-600 text-white rounded-xl font-bold mb-8 hover:bg-brand-700 transition shadow-lg shadow-brand-500/30">Essayer Gratuitement</button>
               <ul className="space-y-4 text-sm text-gray-300 dark:text-gray-600 flex-1">
                 <CheckItem text="Utilisateurs illimités" />
                 <CheckItem text="Tableau de bord Avancé" />
@@ -430,7 +432,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
               <div className="mb-6">
                 <span className="text-4xl font-extrabold text-gray-900 dark:text-white">Sur Mesure</span>
               </div>
-              <button onClick={handleOpenLeadForm} className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl font-bold mb-8 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Contacter Ventes</button>
+              <button onClick={() => handleOpenLeadForm('Enterprise')} className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl font-bold mb-8 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Contacter Ventes</button>
               <ul className="space-y-4 text-sm text-gray-600 dark:text-gray-300 flex-1">
                 <CheckItem text="Tout du pack Business" />
                 <CheckItem text="Marque Blanche (Logo/URL)" />
@@ -477,7 +479,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
           <h2 className="text-4xl font-bold text-white mb-6">Prêt à transformer votre exécution terrain ?</h2>
           <p className="text-xl text-gray-400 mb-10">Rejoignez TradeX Insights au quotidien. Better Insights. Better Trade.</p>
           <button
-            onClick={handleOpenLeadForm}
+            onClick={() => handleOpenLeadForm('Bottom CTA')}
             className="px-10 py-5 bg-white text-brand-900 rounded-full font-bold text-xl shadow-2xl hover:scale-105 transition duration-200"
           >
             Commencer maintenant
@@ -593,6 +595,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, darkMode, toggleD
         isOpen={showLeadForm}
         onClose={() => setShowLeadForm(false)}
         onSubmitSuccess={handleLeadSubmitSuccess}
+        selectedPlan={selectedPlan}
       />
     </div>
   );
