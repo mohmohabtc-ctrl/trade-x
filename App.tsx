@@ -207,83 +207,46 @@ const App: React.FC = () => {
       return;
     }
 
-    // 2. FAST PATH: Check if this is a demo account (mobile.*) - Skip Auth entirely
-    if (email.toLowerCase().startsWith('mobile.')) {
-      console.log("🚀 Demo account detected, using direct RPC login...");
-      const { data: demoUser, error: demoError } = await supabase.rpc('login_demo_user', {
-        email_input: email,
-        password_input: pass
-      });
+    // 2. PRIMARY METHOD: Try Demo User Login via RPC FIRST (avoids rate limiting)
+    console.log("🔐 Attempting login with RPC (demo-first approach)...");
+    const { data: demoUser, error: demoError } = await supabase.rpc('login_demo_user', {
+      email_input: email,
+      password_input: pass
+    });
 
-      console.log("🔍 RPC Response:", { demoUser, demoError });
+    console.log("🔍 RPC Response:", { demoUser, demoError });
 
-      if (demoUser && !demoError) {
-        console.log("✅ Demo user logged in:", demoUser);
-        const role = demoUser.role === 'ADMIN' ? UserRole.ADMIN :
-          (demoUser.role === 'SUPERVISOR' || demoUser.role === 'MANAGER') ? UserRole.MANAGER :
-            UserRole.MERCHANDISER;
+    if (demoUser && !demoError) {
+      console.log("✅ Demo user logged in via RPC:", demoUser);
+      const role = demoUser.role === 'ADMIN' ? UserRole.ADMIN :
+        (demoUser.role === 'SUPERVISOR' || demoUser.role === 'MANAGER') ? UserRole.MANAGER :
+          UserRole.MERCHANDISER;
 
-        setRole(role);
-        setCurrentUser({
-          id: demoUser.id,
-          name: demoUser.name,
-          email: demoUser.email,
-          role: role,
-          region: demoUser.zone,
-          active: true,
-        } as any);
-        setIsLoggedIn(true);
-        setShowLandingPage(false);
-        return;
-      } else {
-        console.error("❌ Demo login failed:", demoError);
-        return "Email ou mot de passe incorrect.";
-      }
+      setRole(role);
+      setCurrentUser({
+        id: demoUser.id,
+        name: demoUser.name,
+        email: demoUser.email,
+        role: role,
+        region: demoUser.zone,
+        active: true,
+      } as any);
+      setIsLoggedIn(true);
+      setShowLandingPage(false);
+      return;
     }
 
-    // 3. Try Supabase Auth Login (Standard Flow) - Only for non-demo accounts
+    // 3. FALLBACK: Try Supabase Auth (only if RPC failed - for real Auth users)
+    console.log("⚠️ RPC login failed, trying Supabase Auth as fallback...");
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email,
       password: pass,
     });
 
     if (error) {
-      console.log("Auth login failed, trying demo login...", error.message);
+      console.error("❌ Both RPC and Auth login failed:", { demoError, authError: error.message });
 
-      // 4. Fallback: Try "Demo User" Login via RPC
-      // This allows users created via create_demo_merchandiser (who are in public.users but not auth.users) to log in.
-      console.log("🔍 Calling login_demo_user RPC with:", { email, password: '***' });
-      const { data: demoUser, error: demoError } = await supabase.rpc('login_demo_user', {
-        email_input: email,
-        password_input: pass
-      });
-
-      console.log("🔍 RPC Response:", { demoUser, demoError });
-
-      if (demoUser && !demoError) {
-        console.log("✅ Demo user logged in:", demoUser);
-        const role = demoUser.role === 'ADMIN' ? UserRole.ADMIN :
-          (demoUser.role === 'SUPERVISOR' || demoUser.role === 'MANAGER') ? UserRole.MANAGER :
-            UserRole.MERCHANDISER;
-
-        setRole(role);
-        setCurrentUser({
-          id: demoUser.id,
-          name: demoUser.name,
-          email: demoUser.email,
-          role: role,
-          region: demoUser.zone,
-          active: true,
-          // created_at might be missing from RPC return if not added, but optional
-        } as any);
-        setIsLoggedIn(true);
-        setShowLandingPage(false);
-        return;
-      } else {
-        console.error("❌ Demo login failed:", demoError);
-      }
-
-      // 5. Fallback: Check if it's a legacy manual user (from our previous implementation without Auth)
+      // 4. Final Fallback: Check legacy manual users
       const mgr = globalManagers.find(m => m.email.toLowerCase() === email.toLowerCase() && m.password === pass);
       if (mgr) {
         setCurrentUser(mgr);
@@ -296,7 +259,8 @@ const App: React.FC = () => {
       return "Email ou mot de passe incorrect.";
     }
 
-    // If successful, the onAuthStateChange listener above will handle the state update
+    // If Supabase Auth successful, the onAuthStateChange listener will handle the state update
+    console.log("✅ Logged in via Supabase Auth");
     return null;
   };
 
