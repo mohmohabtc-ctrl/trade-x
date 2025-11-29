@@ -218,13 +218,16 @@ const App: React.FC = () => {
 
       // 3. Fallback: Try "Demo User" Login via RPC
       // This allows users created via create_demo_merchandiser (who are in public.users but not auth.users) to log in.
+      console.log("🔍 Calling login_demo_user RPC with:", { email, password: '***' });
       const { data: demoUser, error: demoError } = await supabase.rpc('login_demo_user', {
         email_input: email,
         password_input: pass
       });
 
+      console.log("🔍 RPC Response:", { demoUser, demoError });
+
       if (demoUser && !demoError) {
-        console.log("Demo user logged in:", demoUser);
+        console.log("✅ Demo user logged in:", demoUser);
         const role = demoUser.role === 'ADMIN' ? UserRole.ADMIN :
           (demoUser.role === 'SUPERVISOR' || demoUser.role === 'MANAGER') ? UserRole.MANAGER :
             UserRole.MERCHANDISER;
@@ -242,6 +245,8 @@ const App: React.FC = () => {
         setIsLoggedIn(true);
         setShowLandingPage(false);
         return;
+      } else {
+        console.error("❌ Demo login failed:", demoError);
       }
 
       // 4. Fallback: Check if it's a legacy manual user (from our previous implementation without Auth)
