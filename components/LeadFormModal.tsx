@@ -44,16 +44,6 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
         try {
             console.log('🚀 Starting form submission...');
 
-            // 0. Connection Check (Wake up DB)
-            console.log('📡 Step 0: Checking connection...');
-            const { error: pingError } = await supabase.from('leads').select('count').limit(1).single();
-
-            if (pingError && pingError.code !== 'PGRST116') {
-                console.warn('⚠️ Connection check warning:', pingError);
-            } else {
-                console.log('✅ Connection established');
-            }
-
             if (timedOut) return;
 
             // 1. Insert Lead (Non-blocking / Short Timeout)
