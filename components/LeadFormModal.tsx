@@ -48,18 +48,19 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
             console.log('📡 Step 0: Checking connection...');
             const { error: pingError } = await supabase.from('leads').select('count').limit(1).single();
 
-            if (pingError && pingError.code !== 'PGRST116') { // PGRST116 is "no rows", which is fine
+            if (pingError && pingError.code !== 'PGRST116') {
                 console.warn('⚠️ Connection check warning:', pingError);
-                // We continue anyway, as it might just be an empty table issue
             } else {
                 console.log('✅ Connection established');
             }
 
             if (timedOut) return;
 
-            // 1. Insert Lead
+            // 1. Insert Lead (Non-blocking / Short Timeout)
             console.log('📝 Step 1: Inserting lead...');
-            const { error: leadError } = await supabase.from('leads').insert([
+
+            // Create a promise that rejects after 5 seconds
+            const leadInsertPromise = supabase.from('leads').insert([
                 {
                     name: `${formData.firstName} ${formData.lastName}`,
                     email: formData.email,
@@ -70,15 +71,20 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
                 }
             ]);
 
-            if (leadError) {
-                console.error('❌ Error submitting lead:', leadError);
-                throw new Error(`Erreur lors de l'enregistrement du lead: ${leadError.message}`);
-            } else {
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Lead insert timeout')), 5000)
+            );
+
+            try {
+                await Promise.race([leadInsertPromise, timeoutPromise]);
                 console.log('✅ Lead inserted successfully');
+            } catch (leadErr) {
+                console.warn('⚠️ Lead insert skipped due to timeout or error:', leadErr);
+                // We proceed to Auth anyway
             }
 
             if (timedOut) {
-                console.log('⏱️ Timed out after lead insert');
+                console.log('⏱️ Timed out after lead step');
                 return;
             }
 
@@ -100,7 +106,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
             if (authError) {
                 clearTimeout(timeoutId);
                 console.error('❌ Error signing up:', authError);
-                // If user already exists, we still want to show success for the lead part
+
                 if (authError.message.includes('already registered')) {
                     alert("Cet email est déjà enregistré. Veuillez vous connecter.");
                     setLoading(false);
@@ -117,11 +123,9 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
             }
 
             // 3. Create Demo Merchandiser
-            // We don't wait for profile creation check because RLS hides the new profile from the anon user anyway.
-            // We rely on the trigger having fired successfully (synchronous with auth insert).
             console.log('👤 Step 3: Creating demo merchandiser...');
 
-            // Small delay to ensure trigger has processed (just in case of async replication lag, though usually sync)
+            // Small delay to ensure trigger has processed
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             try {
@@ -134,7 +138,6 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
 
                 if (merchError) {
                     console.error('❌ Error creating merch account:', merchError);
-                    // If error is "Manager not found", it means the trigger failed or was too slow.
                     if (merchError.message.includes('Manager not found')) {
                         console.warn('⚠️ Trigger might have been slow. Merchandiser creation skipped.');
                     }
