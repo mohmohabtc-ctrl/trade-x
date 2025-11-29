@@ -365,6 +365,40 @@ $$;
 -- Grant Execute
 grant execute on function public.create_demo_merchandiser to anon, authenticated, service_role;
 
+-- Login Demo User RPC (For demo accounts without Auth)
+create or replace function public.login_demo_user(
+  email_input text,
+  password_input text
+)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  found_user record;
+begin
+  select * into found_user from public.users 
+  where email = email_input 
+  and password = password_input
+  limit 1;
+
+  if found_user.id is not null then
+    return json_build_object(
+      'id', found_user.id,
+      'email', found_user.email,
+      'role', found_user.role,
+      'name', found_user.name,
+      'zone', found_user.zone
+    );
+  else
+    return null;
+  end if;
+end;
+$$;
+
+grant execute on function public.login_demo_user to anon, authenticated, service_role;
+
 -- 8. DATA REPAIR (Fix missing profiles)
 -- Runs once to fix any users that exist in Auth but not in public.users
 do $$

@@ -116,51 +116,33 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
                 return;
             }
 
-            // 3. Wait for user profile to be created by trigger
-            console.log('⏳ Step 3: Waiting for user profile creation...');
-            let profileCreated = false;
-            let retries = 0;
-            const maxRetries = 10; // 10 retries * 1000ms = 10 seconds max
+            // 3. Create Demo Merchandiser
+            // We don't wait for profile creation check because RLS hides the new profile from the anon user anyway.
+            // We rely on the trigger having fired successfully (synchronous with auth insert).
+            console.log('👤 Step 3: Creating demo merchandiser...');
 
-            while (!profileCreated && retries < maxRetries) {
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
+            // Small delay to ensure trigger has processed (just in case of async replication lag, though usually sync)
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
-                const { data: profile } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('email', formData.email)
-                    .single();
+            try {
+                const { error: merchError } = await supabase.rpc('create_demo_merchandiser', {
+                    manager_email: formData.email,
+                    merch_password: formData.password,
+                    manager_name: formData.firstName,
+                    manager_phone: formData.phone
+                });
 
-                if (profile) {
-                    profileCreated = true;
-                    console.log('✅ User profile created in database');
-                }
-                retries++;
-            }
-
-            if (!profileCreated) {
-                console.warn('⚠️ Profile creation timeout - merchandiser may not be created');
-            }
-
-            // 4. Create Demo Merchandiser (now that profile exists)
-            if (profileCreated) {
-                console.log('👤 Step 4: Creating demo merchandiser...');
-                try {
-                    const { error: merchError } = await supabase.rpc('create_demo_merchandiser', {
-                        manager_email: formData.email,
-                        merch_password: formData.password,
-                        manager_name: formData.firstName,
-                        manager_phone: formData.phone
-                    });
-
-                    if (merchError) {
-                        console.error('❌ Error creating merch account:', merchError);
-                    } else {
-                        console.log('✅ Demo merchandiser created: mobile.' + formData.email);
+                if (merchError) {
+                    console.error('❌ Error creating merch account:', merchError);
+                    // If error is "Manager not found", it means the trigger failed or was too slow.
+                    if (merchError.message.includes('Manager not found')) {
+                        console.warn('⚠️ Trigger might have been slow. Merchandiser creation skipped.');
                     }
-                } catch (rpcError) {
-                    console.error("❌ RPC Error:", rpcError);
+                } else {
+                    console.log('✅ Demo merchandiser created: mobile.' + formData.email);
                 }
+            } catch (rpcError) {
+                console.error("❌ RPC Error:", rpcError);
             }
 
             clearTimeout(timeoutId);

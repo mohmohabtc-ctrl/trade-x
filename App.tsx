@@ -197,7 +197,7 @@ const App: React.FC = () => {
   // --- ACTIONS ---
 
   const handleLogin = async (email: string, pass: string) => {
-    // 1. Check Merchandisers
+    // 1. Check Merchandisers (Local State - Legacy/Mock)
     const merch = globalMerchandisers.find(m => m.email.toLowerCase() === email.toLowerCase() && m.password === pass);
     if (merch) {
       setCurrentUser(merch);
@@ -207,15 +207,44 @@ const App: React.FC = () => {
       return;
     }
 
-    // 1. Try Supabase Auth Login
+    // 2. Try Supabase Auth Login (Standard Flow)
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email,
       password: pass,
     });
 
     if (error) {
-      // Fallback: Check if it's a legacy manual user (from our previous implementation without Auth)
-      // This is useful during migration or for the "mobile" accounts we created manually
+      console.log("Auth login failed, trying demo login...", error.message);
+
+      // 3. Fallback: Try "Demo User" Login via RPC
+      // This allows users created via create_demo_merchandiser (who are in public.users but not auth.users) to log in.
+      const { data: demoUser, error: demoError } = await supabase.rpc('login_demo_user', {
+        email_input: email,
+        password_input: pass
+      });
+
+      if (demoUser && !demoError) {
+        console.log("Demo user logged in:", demoUser);
+        const role = demoUser.role === 'ADMIN' ? UserRole.ADMIN :
+          (demoUser.role === 'SUPERVISOR' || demoUser.role === 'MANAGER') ? UserRole.MANAGER :
+            UserRole.MERCHANDISER;
+
+        setRole(role);
+        setCurrentUser({
+          id: demoUser.id,
+          name: demoUser.name,
+          email: demoUser.email,
+          role: role,
+          region: demoUser.zone,
+          active: true,
+          // created_at might be missing from RPC return if not added, but optional
+        } as any);
+        setIsLoggedIn(true);
+        setShowLandingPage(false);
+        return;
+      }
+
+      // 4. Fallback: Check if it's a legacy manual user (from our previous implementation without Auth)
       const mgr = globalManagers.find(m => m.email.toLowerCase() === email.toLowerCase() && m.password === pass);
       if (mgr) {
         setCurrentUser(mgr);
