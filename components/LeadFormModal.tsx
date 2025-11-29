@@ -33,16 +33,29 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
         e.preventDefault();
         setLoading(true);
 
-        // Safety timeout: stop loading after 15 seconds if stuck
+        // Safety timeout: stop loading after 30 seconds if stuck
         let timedOut = false;
         const timeoutId = setTimeout(() => {
             timedOut = true;
             setLoading(false);
-            alert("La demande prend trop de temps. Veuillez vérifier votre connexion ou réessayer.");
-        }, 15000);
+            alert("La demande prend trop de temps. Le serveur peut être en veille. Veuillez réessayer dans quelques secondes.");
+        }, 30000);
 
         try {
             console.log('🚀 Starting form submission...');
+
+            // 0. Connection Check (Wake up DB)
+            console.log('📡 Step 0: Checking connection...');
+            const { error: pingError } = await supabase.from('leads').select('count').limit(1).single();
+
+            if (pingError && pingError.code !== 'PGRST116') { // PGRST116 is "no rows", which is fine
+                console.warn('⚠️ Connection check warning:', pingError);
+                // We continue anyway, as it might just be an empty table issue
+            } else {
+                console.log('✅ Connection established');
+            }
+
+            if (timedOut) return;
 
             // 1. Insert Lead
             console.log('📝 Step 1: Inserting lead...');
@@ -53,13 +66,13 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
                     phone: formData.phone,
                     company: formData.company,
                     role: 'Prospect',
-                    plan_interest: selectedPlan || 'General' // Save plan interest
+                    plan_interest: selectedPlan || 'General'
                 }
             ]);
 
             if (leadError) {
                 console.error('❌ Error submitting lead:', leadError);
-                // Don't block on lead error, but log it
+                throw new Error(`Erreur lors de l'enregistrement du lead: ${leadError.message}`);
             } else {
                 console.log('✅ Lead inserted successfully');
             }
@@ -87,11 +100,14 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
             if (authError) {
                 clearTimeout(timeoutId);
                 console.error('❌ Error signing up:', authError);
-                alert(`Erreur lors de l'inscription: ${authError.message}`);
-                setLoading(false);
-                return;
+                // If user already exists, we still want to show success for the lead part
+                if (authError.message.includes('already registered')) {
+                    alert("Cet email est déjà enregistré. Veuillez vous connecter.");
+                    setLoading(false);
+                    return;
+                }
+                throw authError;
             }
-
 
             console.log('✅ Auth account created:', authData?.user?.id);
 
@@ -104,10 +120,10 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
             console.log('⏳ Step 3: Waiting for user profile creation...');
             let profileCreated = false;
             let retries = 0;
-            const maxRetries = 10; // 10 retries * 500ms = 5 seconds max
+            const maxRetries = 10; // 10 retries * 1000ms = 10 seconds max
 
             while (!profileCreated && retries < maxRetries) {
-                await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
 
                 const { data: profile } = await supabase
                     .from('users')
@@ -139,7 +155,6 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
 
                     if (merchError) {
                         console.error('❌ Error creating merch account:', merchError);
-                        // Don't block the flow, user can create manually later
                     } else {
                         console.log('✅ Demo merchandiser created: mobile.' + formData.email);
                     }
@@ -159,10 +174,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
 
             let errorMessage = "Une erreur inattendue est survenue. Veuillez réessayer.";
             if (err?.message) {
-                errorMessage += ` (${err.message})`;
-            }
-            if (err?.code) {
-                errorMessage += ` [Code: ${err.code}]`;
+                errorMessage = err.message;
             }
 
             alert(errorMessage);
