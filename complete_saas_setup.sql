@@ -175,7 +175,7 @@ grant usage on schema public to anon, authenticated, service_role;
 grant all on public.users to service_role;
 grant select on public.users to anon, authenticated;
 grant insert, update on public.users to authenticated, service_role;
--- Allow public insert on leads is handled by RLS, but explicit grant is good practice if RLS is off (but we enable it)
+grant insert on public.leads to anon, authenticated, service_role;
 
 -- 6. ROW LEVEL SECURITY (RLS)
 
