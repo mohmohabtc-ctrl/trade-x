@@ -33,13 +33,13 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
         e.preventDefault();
         setLoading(true);
 
-        // Safety timeout: stop loading after 30 seconds if stuck
+        // Safety timeout: stop loading after 60 seconds if stuck
         let timedOut = false;
         const timeoutId = setTimeout(() => {
             timedOut = true;
             setLoading(false);
-            alert("La demande prend trop de temps. Le serveur peut être en veille. Veuillez réessayer dans quelques secondes.");
-        }, 30000);
+            alert("La demande prend plus de temps que prévu, mais votre compte est probablement créé. Essayez de vous connecter.");
+        }, 60000);
 
         try {
             console.log('🚀 Starting form submission...');
