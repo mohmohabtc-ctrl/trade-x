@@ -378,9 +378,10 @@ as $$
 declare
   found_user record;
 begin
+  -- Normalize email: trim whitespace and convert to lowercase
   select * into found_user from public.users 
-  where email = email_input 
-  and password = password_input
+  where lower(trim(email)) = lower(trim(email_input))
+  and password = password_input -- Password is case sensitive
   limit 1;
 
   if found_user.id is not null then

@@ -69,8 +69,8 @@ async function runDiagnostics() {
     console.log('\n[4/4] Testing login_demo_user RPC...');
     const start4 = Date.now();
     const { data: rpcData, error: rpcError } = await supabase.rpc('login_demo_user', {
-        email_input: 'nonexistent@example.com',
-        password_input: 'wrongpass'
+        email_input: 'mobile.mohmohabtc@gmail.com',
+        password_input: '12345678'
     });
     const time4 = Date.now() - start4;
 
