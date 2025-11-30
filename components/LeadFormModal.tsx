@@ -115,8 +115,8 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
             // 3. Create Demo Merchandiser
             console.log('👤 Step 3: Creating demo merchandiser...');
 
-            // Small delay to ensure trigger has processed
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Small delay to ensure trigger has processed and release locks
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
             try {
                 const { error: merchError } = await supabase.rpc('create_demo_merchandiser', {
