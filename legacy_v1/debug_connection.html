@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Diagnostic Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f9ff;
+            color: #0f172a;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #0369a1;
+        }
+
+        .status {
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .pending {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+
+        button {
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #0369a1;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🛠️ TradeX Diagnostic Tool</h1>
+    <p>This tool runs independent tests to diagnose the "Timeout" issue.</p>
+
+    <div class="card">
+        <h3>Configuration</h3>
+        <div id="config-status">Loading...</div>
+    </div>
+
+    <div class="card">
+        <h3>Test 1: Connectivity (Ping)</h3>
+        <div id="test-1">Waiting to start...</div>
+    </div>
+
+    <div class="card">
+        <h3>Test 2: Insert Lead (RLS Check)</h3>
+        <div id="test-2">Waiting...</div>
+    </div>
+
+    <div class="card">
+        <h3>Test 3: Auth SignUp (Trigger Check)</h3>
+        <div id="test-3">Waiting...</div>
+    </div>
+
+    <div class="card">
+        <h3>Test 4: RPC Call (Demo User)</h3>
+        <div id="test-4">Waiting...</div>
+    </div>
+
+    <button onclick="runDiagnostics()">▶️ Run Diagnostics</button>
+
+    <script>
+        // Configuration from your project
+        const SUPABASE_URL = 'https://wesjfaqzzighybovostc.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc2pmYXF6emlnaHlib3Zvc3RjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0Mjc0ODcsImV4cCI6MjA3OTAwMzQ4N30.m48Ju2M5VzBhhi5-eu9FFOv2W2rL38nHLe0tB-RoP38';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        function log(id, status, message, details = null) {
+            const el = document.getElementById(id);
+            const statusClass = status === 'SUCCESS' ? 'success' : (status === 'ERROR' ? 'error' : 'pending');
+            const icon = status === 'SUCCESS' ? '✅' : (status === 'ERROR' ? '❌' : '⏳');
+
+            let html = `<div class="status ${statusClass}">${icon} ${status}: ${message}</div>`;
+            if (details) {
+                html += `<pre>${JSON.stringify(details, null, 2)}</pre>`;
+            }
+            el.innerHTML = html;
+        }
+
+        async function runDiagnostics() {
+            console.log("Starting diagnostics...");
+
+            // Config Check
+            document.getElementById('config-status').innerHTML = `URL: ${SUPABASE_URL}<br>Key Length: ${SUPABASE_KEY.length} chars`;
+
+            // Test 1: Ping
+            log('test-1', 'PENDING', 'Pinging database...');
+            const start1 = Date.now();
+            const { data: pingData, error: pingError } = await supabase.from('leads').select('count').limit(1).single();
+            const time1 = Date.now() - start1;
+
+            if (pingError && pingError.code !== 'PGRST116') {
+                log('test-1', 'ERROR', `Ping failed (${time1}ms)`, pingError);
+                return; // Stop if basic connection fails
+            } else {
+                log('test-1', 'SUCCESS', `Connection established in ${time1}ms`);
+            }
+
+            // Test 2: Insert Lead
+            log('test-2', 'PENDING', 'Attempting to insert test lead...');
+            const testEmail = `test.diag.${Date.now()}@example.com`;
+            const start2 = Date.now();
+            const { data: leadData, error: leadError } = await supabase.from('leads').insert([{
+                name: 'Diagnostic Test',
+                email: testEmail,
+                company: 'Test Corp',
+                role: 'Tester',
+                plan_interest: 'Diagnostic'
+            }]).select();
+            const time2 = Date.now() - start2;
+
+            if (leadError) {
+                log('test-2', 'ERROR', `Lead insert failed (${time2}ms)`, leadError);
+            } else {
+                log('test-2', 'SUCCESS', `Lead inserted in ${time2}ms`, leadData);
+            }
+
+            // Test 3: Auth SignUp
+            log('test-3', 'PENDING', 'Attempting Auth SignUp...');
+            const start3 = Date.now();
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: testEmail,
+                password: 'password123',
+                options: {
+                    data: {
+                        name: 'Diagnostic User',
+                        role: 'SUPERVISOR',
+                        zone: 'TestZone'
+                    }
+                }
+            });
+            const time3 = Date.now() - start3;
+
+            if (authError) {
+                log('test-3', 'ERROR', `Auth SignUp failed (${time3}ms)`, authError);
+            } else {
+                log('test-3', 'SUCCESS', `Auth User created in ${time3}ms`, authData.user);
+            }
+
+            // Test 4: RPC Call
+            log('test-4', 'PENDING', 'Testing login_demo_user RPC...');
+            const start4 = Date.now();
+            const { data: rpcData, error: rpcError } = await supabase.rpc('login_demo_user', {
+                email_input: 'nonexistent@example.com',
+                password_input: 'wrongpass'
+            });
+            const time4 = Date.now() - start4;
+
+            if (rpcError) {
+                log('test-4', 'ERROR', `RPC failed (${time4}ms)`, rpcError);
+            } else {
+                log('test-4', 'SUCCESS', `RPC executed in ${time4}ms (Returned null as expected for invalid user)`, rpcData);
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Lead Submission</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Test Lead Submission</h1>
+    <button id="testBtn">Test Lead Insert</button>
+    <button id="testAuthBtn">Test Auth SignUp</button>
+    <pre id="output"></pre>
+
+    <script>
+        const supabaseUrl = 'https://wesjfaqzzighybovostc.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc2pmYXF6emlnaHlib3Zvc3RjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0Mjc0ODcsImV4cCI6MjA3OTAwMzQ4N30.m48Ju2M5VzBhhi5-eu9FFOv2W2rL38nHLe0tB-RoP38';
+        
+        const { createClient } = supabase;
+        const client = createClient(supabaseUrl, supabaseAnonKey);
+        
+        const output = document.getElementById('output');
+        
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            output.textContent = 'Testing lead insert...\n';
+            
+            try {
+                const { data, error } = await client.from('leads').insert([
+                    {
+                        name: 'Test User',
+                        email: `test.${Date.now()}@example.com`,
+                        phone: '1234567890',
+                        company: 'Test Corp',
+                        role: 'Prospect'
+                    }
+                ]);
+                
+                if (error) {
+                    output.textContent += 'ERROR:\n' + JSON.stringify(error, null, 2);
+                } else {
+                    output.textContent += 'SUCCESS:\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (e) {
+                output.textContent += 'EXCEPTION:\n' + e.message + '\n' + e.stack;
+            }
+        });
+        
+        document.getElementById('testAuthBtn').addEventListener('click', async () => {
+            output.textContent = 'Testing auth signup...\n';
+            
+            try {
+                const testEmail = `test.${Date.now()}@example.com`;
+                const { data, error } = await client.auth.signUp({
+                    email: testEmail,
+                    password: 'test123456',
+                    options: {
+                        data: {
+                            name: 'Test User',
+                            role: 'SUPERVISOR',
+                            zone: 'Global',
+                            phone: '1234567890'
+                        }
+                    }
+                });
+                
+                if (error) {
+                    output.textContent += 'ERROR:\n' + JSON.stringify(error, null, 2);
+                } else {
+                    output.textContent += 'SUCCESS:\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (e) {
+                output.textContent += 'EXCEPTION:\n' + e.message + '\n' + e.stack;
+            }
+        });
+    </script>
+</body>
+</html>

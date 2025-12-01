@@ -1,0 +1,8 @@
+{
+  "name": "TradeX Insights",
+  "description": "A comprehensive field merchandising platform featuring a mobile interface for field agents and a web dashboard for managers.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
