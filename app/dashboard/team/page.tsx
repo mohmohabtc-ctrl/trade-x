@@ -4,10 +4,12 @@ import React, { useState } from 'react';
 import { Users, UserPlus, Search, Phone, Mail, MapPin, Shield, MoreHorizontal } from 'lucide-react';
 import { MOCK_MERCHANDISERS } from '@/utils/mockData';
 import { MerchandiserProfile } from '@/utils/types';
+import { AddMerchandiserModal } from '@/components/dashboard/AddMerchandiserModal';
 
 export default function TeamPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [merchandisers, setMerchandisers] = useState<MerchandiserProfile[]>(MOCK_MERCHANDISERS);
+    const [showAddModal, setShowAddModal] = useState(false);
 
     const filteredTeam = merchandisers.filter(m =>
         m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -21,7 +23,10 @@ export default function TeamPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestion d'Équipe</h1>
                     <p className="text-gray-500 dark:text-gray-400">Gérez vos merchandisers et superviseurs.</p>
                 </div>
-                <button className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20">
+                <button
+                    onClick={() => setShowAddModal(true)}
+                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20"
+                >
                     <UserPlus size={18} /> Nouveau Membre
                 </button>
             </div>
@@ -81,6 +86,15 @@ export default function TeamPage() {
                     </div>
                 ))}
             </div>
+
+            <AddMerchandiserModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={() => {
+                    // TODO: Refresh merchandisers list from Supabase
+                    setShowAddModal(false);
+                }}
+            />
         </div>
     );
 }

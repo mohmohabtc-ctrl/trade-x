@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Store as StoreIcon, MapPin, Phone, Plus, Search, Trash2, Edit } from 'lucide-react';
 import { MOCK_STORES } from '@/utils/mockData';
 import { Store } from '@/utils/types';
+import { AddStoreModal } from '@/components/dashboard/AddStoreModal';
 
 export default function StoresPage() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -92,6 +93,15 @@ export default function StoresPage() {
                     <p className="text-gray-500 dark:text-gray-400">Aucun magasin trouvé pour "{searchTerm}"</p>
                 </div>
             )}
+
+            <AddStoreModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={() => {
+                    // TODO: Refresh stores list from Supabase
+                    setShowAddModal(false);
+                }}
+            />
         </div>
     );
 }
