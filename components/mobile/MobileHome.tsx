@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Plus, ChevronLeft, Navigation, Sun, Moon, LogOut } from 'lucide-react';
+import { Plus, ChevronLeft, Navigation, Sun, Moon, LogOut, MapPin } from 'lucide-react';
 import { MerchandiserProfile, Visit, VisitStatus } from '@/utils/types';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
