@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS public.stores (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Ensure ID has default value (fix for existing tables created without default)
+ALTER TABLE public.stores ALTER COLUMN id SET DEFAULT gen_random_uuid();
+
 -- Add missing columns to existing stores table
 DO $$ 
 BEGIN
@@ -114,6 +117,9 @@ CREATE TABLE IF NOT EXISTS public.products (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Ensure ID has default value
+ALTER TABLE public.products ALTER COLUMN id SET DEFAULT gen_random_uuid();
 
 -- Add missing columns to existing products table
 DO $$ 
@@ -216,6 +222,9 @@ CREATE TABLE IF NOT EXISTS public.visits (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Ensure ID has default value
+ALTER TABLE public.visits ALTER COLUMN id SET DEFAULT gen_random_uuid();
 
 -- Enable RLS on visits
 ALTER TABLE public.visits ENABLE ROW LEVEL SECURITY;

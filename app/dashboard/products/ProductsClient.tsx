@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Package, Search, Filter, Download, Plus, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { Product } from '@/utils/types';
 import { createClient } from '@/utils/supabase/client';
+import { ImportProductsModal } from '@/components/dashboard/ImportProductsModal';
 
 interface ProductsClientProps {
     initialProducts: Product[];
@@ -13,6 +14,7 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [products, setProducts] = useState<Product[]>(initialProducts);
     const [loading, setLoading] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     const refreshProducts = async () => {
         setLoading(true);
@@ -47,7 +49,7 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
                 </div>
                 <div className="flex gap-2">
                     <button
-                        onClick={() => alert("L'import Excel sera disponible prochainement !")}
+                        onClick={() => setShowImportModal(true)}
                         className="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                     >
                         <Download size={18} /> Import Excel
@@ -118,8 +120,8 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
                                         <td className="p-4 text-gray-900 dark:text-white font-medium">{product.price} MAD</td>
                                         <td className="p-4">
                                             <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${product.stock > 10
-                                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                                                 }`}>
                                                 {product.stock > 10 ? 'En Stock' : 'Stock Faible'}
                                                 <span className="text-gray-500 dark:text-gray-400 ml-1">({product.stock})</span>
@@ -159,6 +161,14 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
                     )}
                 </div>
             )}
+
+            <ImportProductsModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onSuccess={() => {
+                    refreshProducts();
+                }}
+            />
         </div>
     );
 }

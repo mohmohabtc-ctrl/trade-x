@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Calendar as CalendarIcon, Clock, MapPin, User, Plus, Search, Filter, MoreVertical, CheckCircle, AlertCircle } from 'lucide-react';
 import { Visit, MerchandiserProfile, Store, VisitStatus } from '@/utils/types';
 import { createClient } from '@/utils/supabase/client';
+import { AddVisitModal } from '@/components/dashboard/AddVisitModal';
 
 interface DispatchClientProps {
     initialVisits: Visit[];
@@ -16,6 +17,7 @@ export function DispatchClient({ initialVisits, merchandisers, stores }: Dispatc
     const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
     const [visits, setVisits] = useState<Visit[]>(initialVisits);
     const [loading, setLoading] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
 
     const refreshVisits = async () => {
         setLoading(true);
@@ -53,7 +55,7 @@ export function DispatchClient({ initialVisits, merchandisers, stores }: Dispatc
                         <Filter size={18} /> Filtres
                     </button>
                     <button
-                        onClick={() => alert("La création de visite sera disponible prochainement !")}
+                        onClick={() => setShowAddModal(true)}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition shadow-lg shadow-red-500/20"
                     >
                         <Plus size={18} /> Nouvelle Visite
@@ -109,11 +111,7 @@ export function DispatchClient({ initialVisits, merchandisers, stores }: Dispatc
                         </div>
                     ) : (
                         filteredVisits.map(visit => {
-                            // Find merchandiser and store details
-                            // Note: store might already be populated if we used select(*, store:stores(*))
-                            // But for safety/fallback we look up in the props lists too if needed
                             const merch = merchandisers.find(m => m.id === visit.merchandiserId);
-                            // If visit.store is populated by Supabase join, use it, otherwise find in stores list
                             const store = visit.store || stores.find(s => s.id === visit.storeId);
 
                             return (
@@ -156,6 +154,17 @@ export function DispatchClient({ initialVisits, merchandisers, stores }: Dispatc
                     )}
                 </div>
             )}
+
+            <AddVisitModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={() => {
+                    refreshVisits();
+                    setShowAddModal(false);
+                }}
+                merchandisers={merchandisers}
+                stores={stores}
+            />
         </div>
     );
 }
