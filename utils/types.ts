@@ -7,6 +7,26 @@ export enum UserRole {
 
 export enum VisitStatus {
     TODO = 'TODO',
+    IN_PROGRESS = 'IN_PROGRESS',
+    COMPLETED = 'COMPLETED',
+    LATE = 'LATE',
+}
+
+export interface Store {
+    id: string;
+    name: string;
+    address: string;
+    phone?: string;
+    type?: string;
+    lat?: number;
+    lng?: number;
+    owner_id?: string; // The Manager who owns this store
+}
+
+export interface Product {
+    id: string;
+    brand: string;
+    sku: string; // Code article unique
     name: string; // Nom commercial
     price: number;
     stock: number; // Stock cible ou théorique
