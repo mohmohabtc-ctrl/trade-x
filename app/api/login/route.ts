@@ -25,23 +25,10 @@ if (demoUser && !demoError) {
         email,
         password,
     })
+}
 
-    if (authError) {
-        console.warn(`⚠️ [API] RPC success but Auth failed (expected for pure demo users): ${authError.message}`)
-        // For pure demo users, we can set a custom cookie "demo_user" 
-        // The middleware should allow access if this cookie is present.
-
-        const response = NextResponse.json({ user: demoUser, type: 'demo_rpc' })
-        response.cookies.set('tradeX_demo_user', JSON.stringify(demoUser), {
-            path: '/',
-            httpOnly: false, // Accessible to client to read user info
-            maxAge: 60 * 60 * 24 * 7 // 1 week
-        })
-        return response
-    }
-
-    console.log(`✅ [API] Auth session established for: ${email}`)
-    return NextResponse.json({ user: demoUser, type: 'authenticated' })
+console.log(`✅ [API] Auth session established for: ${email}`)
+return NextResponse.json({ user: demoUser, type: 'authenticated' })
 }
 
 // 2. FALLBACK: Try Supabase Auth directly (if RPC failed)
