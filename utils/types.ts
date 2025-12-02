@@ -87,7 +87,7 @@ export interface FormTemplate {
 }
 
 export interface AdminReport {
-    id: string | number; // Updated to allow UUID strings
+    id: string; // UUID strings
     merch: string;
     store: string;
     ville: string;
