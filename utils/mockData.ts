@@ -93,7 +93,7 @@ export const MOCK_FORM_TEMPLATE: FormTemplate = {
 
 export const MOCK_ADMIN_REPORTS: AdminReport[] = [
     {
-        id: 1,
+        id: '1',
         merch: 'Ali',
         store: 'Carrefour Centre',
         ville: 'Alger',
@@ -105,7 +105,7 @@ export const MOCK_ADMIN_REPORTS: AdminReport[] = [
         progress: 0
     },
     {
-        id: 2,
+        id: '2',
         merch: 'Sara',
         store: 'Auchan Bab Ezzouar',
         ville: 'Alger',
@@ -117,7 +117,7 @@ export const MOCK_ADMIN_REPORTS: AdminReport[] = [
         progress: 0
     },
     {
-        id: 3,
+        id: '3',
         merch: 'amine',
         store: 'PROXIM',
         ville: 'REGHAIA',
@@ -129,7 +129,7 @@ export const MOCK_ADMIN_REPORTS: AdminReport[] = [
         progress: 0
     },
     {
-        id: 4,
+        id: '4',
         merch: 'djamel',
         store: 'geant',
         ville: 'heusin dey',
