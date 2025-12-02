@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { FileText, FileSpreadsheet, Filter, Download, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { Visit, MerchandiserProfile, Store, VisitStatus, AdminReport } from '@/utils/types';
 import * as XLSX from 'xlsx';
+import { VisitDetailsModal } from '@/components/dashboard/VisitDetailsModal';
 
 interface AdminClientProps {
     visits: Visit[];
@@ -14,6 +15,7 @@ interface AdminClientProps {
 export function AdminClient({ visits, merchandisers, stores }: AdminClientProps) {
     const [filterName, setFilterName] = useState('Tous');
     const [filterStatus, setFilterStatus] = useState('Tous');
+    const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
 
     // Transform Visits into Reports
     const reports: AdminReport[] = visits.map(v => {
@@ -72,6 +74,13 @@ export function AdminClient({ visits, merchandisers, stores }: AdminClientProps)
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Rapport_Merch");
         XLSX.writeFile(wb, `Rapport_Merch_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    const handleViewDetails = (reportId: string) => {
+        const visit = visits.find(v => v.id === reportId);
+        if (visit) {
+            setSelectedVisit(visit);
+        }
     };
 
     const allMerchs = Array.from(new Set(merchandisers.map(m => m.name)));
@@ -176,7 +185,11 @@ export function AdminClient({ visits, merchandisers, stores }: AdminClientProps)
                                         <span className="text-xs text-gray-500 mt-1 block text-right">{report.progress}%</span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <button className="text-gray-400 hover:text-blue-600 transition p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">
+                                        <button
+                                            onClick={() => handleViewDetails(report.id)}
+                                            className="text-gray-400 hover:text-blue-600 transition p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                                            title="Voir détails"
+                                        >
                                             <FileText size={18} />
                                         </button>
                                     </td>
@@ -186,6 +199,14 @@ export function AdminClient({ visits, merchandisers, stores }: AdminClientProps)
                     </table>
                 </div>
             </div>
+
+            {/* Modal */}
+            {selectedVisit && (
+                <VisitDetailsModal
+                    visit={selectedVisit}
+                    onClose={() => setSelectedVisit(null)}
+                />
+            )}
         </div>
     );
 }
