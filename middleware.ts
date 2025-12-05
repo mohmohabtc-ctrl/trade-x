@@ -8,10 +8,31 @@ export async function middleware(request: NextRequest) {
         },
     })
 
-    // 1. Check for Custom Demo Cookie (Bypass Supabase Auth)
+    // 1. Check for Custom Demo Cookie (Bypass Supabase Auth but enforce RBAC)
     const demoCookie = request.cookies.get('tradeX_demo_user')
     if (demoCookie) {
-        // If we have a demo cookie, we allow access
+        try {
+            // Cookie value might be URI encoded
+            const cookieValue = decodeURIComponent(demoCookie.value)
+            const userData = JSON.parse(cookieValue)
+            const role = userData.role
+            const path = request.nextUrl.pathname
+
+            // Merchandiser trying to access Dashboard -> Redirect to App
+            if (role === 'MERCHANDISER' && path.startsWith('/dashboard')) {
+                return NextResponse.redirect(new URL('/app', request.url))
+            }
+
+            // Admin/Manager trying to access App -> Redirect to Dashboard
+            if ((role === 'ADMIN' || role === 'MANAGER' || role === 'SUPERVISOR') && path.startsWith('/app')) {
+                return NextResponse.redirect(new URL('/dashboard', request.url))
+            }
+        } catch (e) {
+            // If cookie parse fails, proceed to standard auth or allow (safer to allow and let client handle)
+            console.error('Error parsing demo cookie in middleware:', e)
+        }
+
+        // If we have a valid demo cookie and no redirect needed, we allow access
         return response
     }
 

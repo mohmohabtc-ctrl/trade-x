@@ -47,12 +47,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             // 1. Check for Demo Cookie (Client Side)
             const demoCookie = document.cookie.split('; ').find(row => row.startsWith('tradeX_demo_user='));
             if (demoCookie) {
-                const userData = JSON.parse(decodeURIComponent(demoCookie.split('=')[1]));
-                console.log("🍪 Demo User found in cookie:", userData);
-                setUser(userData);
-                setRole(userData.role === 'ADMIN' ? UserRole.ADMIN :
-                    (userData.role === 'MANAGER' || userData.role === 'SUPERVISOR') ? UserRole.MANAGER :
-                        UserRole.MERCHANDISER);
+                try {
+                    const userData = JSON.parse(decodeURIComponent(demoCookie.split('=')[1]));
+                    console.log("🍪 Demo User found in cookie:", userData);
+                    setUser(userData);
+                    const userRole = userData.role === 'ADMIN' ? UserRole.ADMIN :
+                        (userData.role === 'MANAGER' || userData.role === 'SUPERVISOR') ? UserRole.MANAGER :
+                            UserRole.MERCHANDISER;
+
+                    setRole(userRole);
+
+                    // REDIRECT MERCHANDISERS TO APP
+                    if (userRole === UserRole.MERCHANDISER) {
+                        router.push('/app');
+                    }
+                } catch (e) {
+                    console.error("Error parsing demo cookie:", e);
+                }
                 return;
             }
 
