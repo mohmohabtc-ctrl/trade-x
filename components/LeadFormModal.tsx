@@ -92,7 +92,8 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSubmit
                         name: `${formData.firstName} ${formData.lastName}`,
                         role: 'SUPERVISOR',
                         zone: 'Global',
-                        phone: formData.phone
+                        phone: formData.phone,
+                        password: formData.password // Pass password to metadata for trigger
                     }
                 }
             });
