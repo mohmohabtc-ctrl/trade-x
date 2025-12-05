@@ -43,7 +43,13 @@ export default function LoginPage() {
 
             // Login successful
             console.log('Login success:', data);
-            router.push('/dashboard');
+
+            // Role-based redirection
+            if (data.user?.role === 'MERCHANDISER') {
+                router.push('/app');
+            } else {
+                router.push('/dashboard');
+            }
 
         } catch (err: any) {
             console.error('Login error:', err);

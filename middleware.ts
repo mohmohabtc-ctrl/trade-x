@@ -69,6 +69,22 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
+    // 3. Role-Based Access Control
+    if (user) {
+        const role = user.user_metadata?.role;
+        const path = request.nextUrl.pathname;
+
+        // Merchandiser trying to access Dashboard -> Redirect to App
+        if (role === 'MERCHANDISER' && path.startsWith('/dashboard')) {
+            return NextResponse.redirect(new URL('/app', request.url));
+        }
+
+        // Admin/Manager trying to access App -> Redirect to Dashboard
+        if ((role === 'ADMIN' || role === 'MANAGER' || role === 'SUPERVISOR') && path.startsWith('/app')) {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+    }
+
     return response
 }
 

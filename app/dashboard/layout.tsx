@@ -63,9 +63,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 const { data: profile } = await supabase.from('users').select('*').eq('id', authUser.id).single();
                 if (profile) {
                     setUser(profile);
-                    setRole(profile.role === 'ADMIN' ? UserRole.ADMIN :
+                    const userRole = profile.role === 'ADMIN' ? UserRole.ADMIN :
                         (profile.role === 'MANAGER' || profile.role === 'SUPERVISOR') ? UserRole.MANAGER :
-                            UserRole.MERCHANDISER);
+                            UserRole.MERCHANDISER;
+                    setRole(userRole);
+
+                    // Redirect Merchandisers to App
+                    if (userRole === UserRole.MERCHANDISER) {
+                        router.push('/app');
+                    }
                 } else {
                     setUser(authUser); // Fallback
                 }
