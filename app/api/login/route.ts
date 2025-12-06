@@ -53,7 +53,16 @@ export async function POST(request: Request) {
         }
 
         console.log(`✅ [API] Auth session established for: ${email}`)
-        return NextResponse.json({ user: demoUser, type: 'authenticated' })
+
+        // UNIFIED FIX: Always set the demo cookie for consistency, 
+        // ensuring the middleware sees the correct role even if Supabase Auth cookies aren't perfectly propagated.
+        const response = NextResponse.json({ user: demoUser, type: 'authenticated' })
+        response.cookies.set('tradeX_demo_user', JSON.stringify(demoUser), {
+            path: '/',
+            httpOnly: false,
+            maxAge: 60 * 60 * 24 * 7 // 1 week
+        })
+        return response
     }
 
     // 2. FALLBACK: Try Supabase Auth directly (if RPC failed)
