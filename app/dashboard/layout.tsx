@@ -95,9 +95,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }, [router, supabase]);
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
-        // Clear demo cookie
-        document.cookie = "tradeX_demo_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        try {
+            await fetch('/api/logout', { method: 'POST' });
+        } catch (error) {
+            console.error("Logout error:", error);
+        }
         router.push('/');
     };
 
