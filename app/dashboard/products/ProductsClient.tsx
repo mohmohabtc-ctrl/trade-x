@@ -5,6 +5,7 @@ import { Package, Search, Filter, Download, Plus, MoreHorizontal, AlertCircle } 
 import { Product } from '@/utils/types';
 import { createClient } from '@/utils/supabase/client';
 import { ImportProductsModal } from '@/components/dashboard/ImportProductsModal';
+import { AddProductModal } from '@/components/dashboard/AddProductModal';
 
 interface ProductsClientProps {
     initialProducts: Product[];
@@ -15,6 +16,7 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
     const [products, setProducts] = useState<Product[]>(initialProducts);
     const [loading, setLoading] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
 
     const refreshProducts = async () => {
         setLoading(true);
@@ -54,7 +56,10 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
                     >
                         <Download size={18} /> Import Excel
                     </button>
-                    <button className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20">
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20"
+                    >
                         <Plus size={18} /> Nouveau Produit
                     </button>
                 </div>
@@ -165,6 +170,14 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
             <ImportProductsModal
                 isOpen={showImportModal}
                 onClose={() => setShowImportModal(false)}
+                onSuccess={() => {
+                    refreshProducts();
+                }}
+            />
+
+            <AddProductModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
                 onSuccess={() => {
                     refreshProducts();
                 }}

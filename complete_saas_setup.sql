@@ -14,13 +14,32 @@ drop function if exists public.handle_new_user();
 drop function if exists public.create_demo_merchandiser(text, text, text, text);
 drop function if exists public.login_demo_user(text, text);
 
+-- 2.5 DEDUPLICATION & CONSTRAINTS (Fixing existing data)
+do $$
+begin
+    -- 1. Delete duplicate emails, keeping the most recent one
+    delete from public.users
+    where id in (
+        select id from (
+            select id, row_number() over (partition by lower(trim(email)) order by created_at desc) as rnum
+            from public.users
+        ) t
+        where t.rnum > 1
+    );
+
+    -- 2. Add Unique Constraint if missing
+    if not exists (select 1 from pg_constraint where conname = 'users_email_key') then
+        alter table public.users add constraint users_email_key unique (email);
+    end if;
+end $$;
+
 -- 3. TABLES & MIGRATIONS
 
 -- USERS
 create table if not exists public.users (
   id text primary key,
   name text,
-  email text,
+  email text unique, -- Enforce uniqueness to prevent duplicates
   password text, -- Crucial for Demo RPC login
   phone text,
   zone text,
@@ -266,8 +285,14 @@ begin
     'Terrain',
     manager_phone,
     mgr_id
-  );
+  )
+  on conflict (email) do update set
+    password = excluded.password,
+    name = excluded.name,
+    manager_id = excluded.manager_id;
 
+  -- Return the ID of the user (either new or existing)
+  select id into new_id from public.users where email = merch_email;
   return json_build_object('id', new_id, 'email', merch_email);
 end;
 $$;
@@ -308,5 +333,19 @@ $$;
 
 grant execute on function public.login_demo_user to anon, authenticated, service_role;
 
--- 9. VERIFICATION
-select count(*) as users_count from public.users;
+
+-- 10. FIX DATA (RESET DEMO MERCH PASSWORD)
+do $$
+declare
+    mgr_id text;
+    merch_email text := 'mobile.mohmohabtc@gmail.com';
+begin
+    select id into mgr_id from public.users where email = 'mohmohabtc@gmail.com';
+    
+    if mgr_id is not null and exists (select 1 from public.users where email = merch_email) then
+        update public.users 
+        set password = '123456', manager_id = mgr_id
+        where email = merch_email;
+    end if;
+end $$;
+
