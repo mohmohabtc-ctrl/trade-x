@@ -20,7 +20,7 @@ export function MobileHome({ user, visits }: MobileHomeProps) {
     const today = new Date().toISOString().split('T')[0];
     const myVisits = visits.filter(v =>
         v.merchandiserId === user?.id &&
-        v.scheduledStart.startsWith(today)
+        v.scheduledStart && v.scheduledStart.startsWith(today)
     );
 
     const completedCount = myVisits.filter(v => v.status === VisitStatus.COMPLETED).length;

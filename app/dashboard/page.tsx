@@ -23,9 +23,22 @@ export default async function DashboardPage() {
         console.error('Error fetching merchandisers:', merchError);
     }
 
+    const formattedVisits = (visits || []).map(v => ({
+        ...v,
+        merchandiserId: v.merchandiser_id,
+        storeId: v.store_id,
+        scheduledStart: v.scheduled_start,
+        scheduledEnd: v.scheduled_end,
+        checkInTime: v.check_in_time,
+        checkOutTime: v.check_out_time,
+        photoAvant: v.photo_avant,
+        photoApres: v.photo_apres,
+        ruptureItems: v.rupture_items
+    }));
+
     return (
         <DashboardClient
-            visits={visits || []}
+            visits={formattedVisits}
             merchandisers={merchandisers || []}
         />
     );
