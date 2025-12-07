@@ -1,13 +1,28 @@
 import { createClient } from '@/utils/supabase/server';
 import { AddMissionForm } from '@/components/mobile/AddMissionForm';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 export default async function AddMissionPage() {
     const supabase = await createClient();
 
+    let userId = null;
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (user) {
+        userId = user.id;
+    } else {
+        const cookieStore = await cookies();
+        const demoCookie = cookieStore.get('tradeX_demo_user');
+        if (demoCookie) {
+            try {
+                const demoUser = JSON.parse(decodeURIComponent(demoCookie.value));
+                userId = demoUser.id;
+            } catch (e) { }
+        }
+    }
+
+    if (!userId) {
         redirect('/login');
     }
 
@@ -19,7 +34,7 @@ export default async function AddMissionPage() {
     return (
         <AddMissionForm
             stores={stores || []}
-            userId={user.id}
+            userId={userId}
         />
     );
 }
