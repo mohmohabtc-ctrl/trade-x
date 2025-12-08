@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Zap, Moon, Sun, Loader2, ArrowLeft, LogIn } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -76,15 +77,13 @@ export default function LoginPage() {
 
             <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 dark:border-gray-700 animate-fade-in">
                 <div className="flex justify-center mb-8">
-                    <div className="flex items-center gap-2">
-                        <div className="bg-red-600 text-white p-2 rounded-lg shadow-lg">
-                            <Zap size={28} className="fill-white" />
-                        </div>
-                        <div className="text-left">
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">TradeX <span className="text-red-600">Insights</span></h1>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 tracking-wider uppercase font-semibold">Espace Professionnel</p>
-                        </div>
-                    </div>
+                    <Image
+                        src="/tradex-logo.png"
+                        alt="TradeX"
+                        width={180}
+                        height={60}
+                        className="h-16 w-auto object-contain"
+                    />
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -120,7 +119,7 @@ export default function LoginPage() {
 
                     <button
                         type="submit"
-                        className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-bold shadow-lg shadow-red-500/30 transition transform active:scale-95 flex items-center justify-center gap-2"
+                        className="w-full bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-lg font-bold shadow-lg shadow-brand-500/30 transition transform active:scale-95 flex items-center justify-center gap-2"
                         disabled={loading}
                     >
                         {loading ? <Loader2 className="animate-spin" /> : <LogIn size={20} />}

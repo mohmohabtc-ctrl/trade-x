@@ -21,6 +21,7 @@ import {
     Moon
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -123,10 +124,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="h-full flex flex-col">
                     {/* Logo */}
                     <div className="h-16 flex items-center px-6 border-b border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-2 font-bold text-xl text-gray-900 dark:text-white">
-                            <div className="bg-red-600 text-white p-1 rounded">T</div>
-                            TradeX
-                        </div>
+                        <Image
+                            src="/tradex-logo.png"
+                            alt="TradeX"
+                            width={110}
+                            height={34}
+                            className="h-8 w-auto object-contain"
+                        />
                         <button onClick={() => setSidebarOpen(false)} className="ml-auto lg:hidden text-gray-500">
                             <X size={24} />
                         </button>
@@ -139,7 +143,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${pathname === item.href
-                                    ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+                                    ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400'
                                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                                     }`}
                             >
@@ -184,7 +188,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <input
                                 type="text"
                                 placeholder="Rechercher..."
-                                className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 border-none rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm"
+                                className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 border-none rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                             />
                         </div>
                     </div>
@@ -195,7 +199,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </button>
                         <button className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition relative">
                             <Bell size={20} />
-                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full border-2 border-white dark:border-gray-800"></span>
                         </button>
                     </div>
                 </header>
