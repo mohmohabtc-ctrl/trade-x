@@ -57,13 +57,6 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12">
         <div className="lg:w-1/2 space-y-8 animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 text-sm font-semibold border border-brand-100 dark:border-brand-800">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
-            </span>
-            Nouvelle Version 2.0
-          </div>
           <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight leading-tight">
             Dominez le <span className="text-brand-600 dark:text-brand-500">Terrain</span> avec Précision.
           </h1>
