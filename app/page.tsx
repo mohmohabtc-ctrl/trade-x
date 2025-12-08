@@ -101,20 +101,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Trusted By Section */}
-      <section className="py-10 border-y border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6">Ils nous font confiance</p>
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-            <span className="text-xl font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">GlobalBrands</span>
-            <span className="text-xl font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">FastRetail</span>
-            <span className="text-xl font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">AgencyOne</span>
-            <span className="text-xl font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">SuperMarket</span>
-            <span className="text-xl font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">CorpGroup</span>
-          </div>
-        </div>
-      </section>
-
       {/* Features Grid */}
       <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
