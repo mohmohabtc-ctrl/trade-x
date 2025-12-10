@@ -37,9 +37,9 @@ export default function LandingPage() {
               <Image
                 src="/tradex-logo.png"
                 alt="TradeX Logo"
-                width={120}
-                height={40}
-                className="h-10 w-auto object-contain"
+                width={200}
+                height={65}
+                className="h-16 w-auto object-contain"
               />
             </div>
             <div className="flex items-center gap-4">
@@ -128,9 +128,9 @@ export default function LandingPage() {
             <Image
               src="/tradex-logo.png"
               alt="TradeX Logo"
-              width={100}
-              height={32}
-              className="h-8 w-auto object-contain grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition"
+              width={140}
+              height={45}
+              className="h-11 w-auto object-contain grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition"
             />
           </div>
           <div className="text-sm text-gray-500">
